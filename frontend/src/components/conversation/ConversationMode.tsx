@@ -105,6 +105,7 @@ export function ConversationMode() {
   const sourceTranscriptResetTimeoutRef = useRef<number | null>(null);
   const sourceTranscriptLanguageRef = useRef<SupportedLanguage | null>(null);
   const sourceTranscriptRolesRef = useRef<ConversationSessionRole[]>([]);
+  const sourceTranscriptIgnoreRolesRef = useRef<ConversationSessionRole[]>([]);
   const sourceTranscriptTextRef = useRef("");
   const pushToTalkActiveRef = useRef(false);
   const pushToTalkStartingRef = useRef(false);
@@ -734,6 +735,7 @@ export function ConversationMode() {
     sourceTranscriptLanguageRef.current = detectedLanguage;
     const sourceRoles = getConversationRolesForLanguage(detectedLanguage);
     sourceTranscriptRolesRef.current = sourceRoles;
+    sourceTranscriptIgnoreRolesRef.current = sourceRoles;
 
     if (sourceRoles.length === 0) {
       scheduleSourceTranscriptReset();
@@ -773,6 +775,7 @@ export function ConversationMode() {
     sourceTranscriptLanguageRef.current = detectedLanguage;
     const sourceRoles = getConversationRolesForLanguage(detectedLanguage);
     sourceTranscriptRolesRef.current = sourceRoles;
+    sourceTranscriptIgnoreRolesRef.current = sourceRoles;
 
     sourceRoles.forEach((role) => {
       clearCaptionIdleCommit(role);
@@ -786,11 +789,13 @@ export function ConversationMode() {
         detectedLanguage,
       );
     });
-    resetSourceTranscriptState();
+    sourceTranscriptTextRef.current = "";
+    sourceTranscriptLanguageRef.current = null;
+    scheduleSourceTranscriptReset();
   }
 
   function shouldIgnoreOutputTranscript(role: ConversationSessionRole): boolean {
-    return sourceTranscriptRolesRef.current.includes(role);
+    return sourceTranscriptIgnoreRolesRef.current.includes(role);
   }
 
   function getConversationRolesForLanguage(
@@ -828,6 +833,7 @@ export function ConversationMode() {
     clearTimeoutRef(sourceTranscriptResetTimeoutRef);
     sourceTranscriptLanguageRef.current = null;
     sourceTranscriptRolesRef.current = [];
+    sourceTranscriptIgnoreRolesRef.current = [];
     sourceTranscriptTextRef.current = "";
   }
 

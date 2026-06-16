@@ -17,8 +17,8 @@ export function PushToTalkButton({
   onPressEnd,
 }: PushToTalkButtonProps) {
   const buttonClassName = active
-    ? "inline-flex h-8 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-700 bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm transition disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300"
-    : "inline-flex h-8 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-cyan-700 bg-cyan-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300";
+    ? "inline-flex h-8 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-700 bg-emerald-600 px-3 !text-xs font-bold text-white shadow-sm transition disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300"
+    : "inline-flex h-8 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-cyan-700 bg-cyan-600 px-3 !text-xs font-bold text-white shadow-sm transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300";
 
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (disabled || event.button !== 0) {
