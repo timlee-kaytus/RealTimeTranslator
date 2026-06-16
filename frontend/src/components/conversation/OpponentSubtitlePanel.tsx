@@ -1,6 +1,7 @@
 import { UsersRound } from "lucide-react";
 
 import { SubtitlePanel } from "@/components/conversation/SubtitlePanel";
+import { DETECTED_LANGUAGE_PLACEHOLDERS } from "@/lib/types/language";
 import type { SupportedLanguage } from "@/lib/types/language";
 
 type OpponentSubtitlePanelProps = {
@@ -26,7 +27,7 @@ export function OpponentSubtitlePanel({
       language={language}
       text={text}
       fontSize={fontSize}
-      placeholder="상대방 언어 자막이 여기에 표시됩니다."
+      placeholder={DETECTED_LANGUAGE_PLACEHOLDERS[language]}
       onLanguageChange={onLanguageChange}
     />
   );
