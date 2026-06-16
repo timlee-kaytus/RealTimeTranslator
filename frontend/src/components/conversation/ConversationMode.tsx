@@ -43,6 +43,7 @@ const READY_VISIBLE_MS = 800;
 const MOCK_FIRST_CAPTION_DELAY_MS = WARMUP_MS + READY_VISIBLE_MS + 200;
 const SPEECH_DETECTED_HOLD_MS = 200;
 const TRANSLATING_IDLE_RESET_MS = 1200;
+const SOURCE_TRANSCRIPT_SESSION_ROLE: ConversationSessionRole = "top";
 
 type ConversationSessionRole = "top" | "bottom";
 type ConversationSessionStatuses = Record<
@@ -100,6 +101,10 @@ export function ConversationMode() {
   const readyTimeoutRef = useRef<number | null>(null);
   const speechDetectedTimeoutRef = useRef<number | null>(null);
   const translatingResetTimeoutRef = useRef<number | null>(null);
+  const sourceTranscriptResetTimeoutRef = useRef<number | null>(null);
+  const sourceTranscriptLanguageRef = useRef<SupportedLanguage | null>(null);
+  const sourceTranscriptRolesRef = useRef<ConversationSessionRole[]>([]);
+  const sourceTranscriptTextRef = useRef("");
 
   const active =
     isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
@@ -120,6 +125,7 @@ export function ConversationMode() {
     clearTimeoutRef(readyTimeoutRef);
     clearTimeoutRef(speechDetectedTimeoutRef);
     clearTimeoutRef(translatingResetTimeoutRef);
+    clearTimeoutRef(sourceTranscriptResetTimeoutRef);
   }, []);
 
   const startActivityWarmup = useCallback(() => {
@@ -202,6 +208,7 @@ export function ConversationMode() {
         (timeoutId) => window.clearTimeout(timeoutId),
       );
       captionIdleCommitTimeoutsRef.current = {};
+      resetSourceTranscriptState();
       captionBuffers.top.clear();
       captionBuffers.bottom.clear();
     };
@@ -484,10 +491,23 @@ export function ConversationMode() {
       sourceStream: mediaStream,
       clientSecret: realtimeSession.clientSecret,
       stopSourceTracksOnClose: false,
+      enableInputTranscription: role === SOURCE_TRANSCRIPT_SESSION_ROLE,
       onStatusChange: (nextStatus) => {
         handleSessionStatusChange(role, nextStatus);
       },
+      onInputTranscriptDelta:
+        role === SOURCE_TRANSCRIPT_SESSION_ROLE
+          ? handleInputTranscriptDelta
+          : undefined,
+      onInputTranscriptFinal:
+        role === SOURCE_TRANSCRIPT_SESSION_ROLE
+          ? handleInputTranscriptFinal
+          : undefined,
       onTranscriptDelta: (delta) => {
+        if (shouldIgnoreOutputTranscript(role)) {
+          return;
+        }
+
         markActivityTranslating();
         const displayState = captionBuffersRef.current[role].appendDelta(delta);
 
@@ -500,6 +520,10 @@ export function ConversationMode() {
       },
       onTranscriptFinal: (text) => {
         returnActivityToListening();
+
+        if (shouldIgnoreOutputTranscript(role)) {
+          return;
+        }
 
         if (!text) {
           return;
@@ -543,6 +567,7 @@ export function ConversationMode() {
     role: ConversationSessionRole,
     text: string,
     isFinal = false,
+    detectedLanguage?: SupportedLanguage | "unknown",
   ) {
     setCaption((current) =>
       createConversationCaption({
@@ -552,6 +577,7 @@ export function ConversationMode() {
         topText: role === "top" ? text : current.top.text,
         bottomText: role === "bottom" ? text : current.bottom.text,
         isFinal,
+        detectedLanguage: detectedLanguage ?? current.detectedLanguage,
       }),
     );
   }
@@ -570,6 +596,7 @@ export function ConversationMode() {
       top: "stopped",
       bottom: "stopped",
     };
+    resetSourceTranscriptState();
   }
 
   function handleTopLanguageChange(language: SupportedLanguage) {
@@ -629,11 +656,125 @@ export function ConversationMode() {
     clearCaptionIdleCommit("bottom");
   }
 
+  function handleInputTranscriptDelta(delta: string) {
+    const nextText = `${sourceTranscriptTextRef.current}${delta}`;
+    sourceTranscriptTextRef.current = nextText;
+
+    const detectedLanguage =
+      sourceTranscriptLanguageRef.current ??
+      detectSupportedLanguageFromText(nextText);
+
+    if (!detectedLanguage) {
+      scheduleSourceTranscriptReset();
+      return;
+    }
+
+    sourceTranscriptLanguageRef.current = detectedLanguage;
+    const sourceRoles = getConversationRolesForLanguage(detectedLanguage);
+    sourceTranscriptRolesRef.current = sourceRoles;
+
+    if (sourceRoles.length === 0) {
+      scheduleSourceTranscriptReset();
+      return;
+    }
+
+    markActivityTranslating();
+    sourceRoles.forEach((role) => {
+      const displayState =
+        captionBuffersRef.current[role].replaceCurrentText(nextText);
+
+      updateConversationCaption(
+        role,
+        displayState.currentBlock.text,
+        displayState.currentBlock.isFinal,
+        detectedLanguage,
+      );
+    });
+    scheduleSourceTranscriptReset();
+  }
+
+  function handleInputTranscriptFinal(text: string) {
+    const finalText = text || sourceTranscriptTextRef.current;
+
+    if (!finalText) {
+      return;
+    }
+
+    const detectedLanguage =
+      sourceTranscriptLanguageRef.current ??
+      detectSupportedLanguageFromText(finalText);
+
+    if (!detectedLanguage) {
+      return;
+    }
+
+    sourceTranscriptLanguageRef.current = detectedLanguage;
+    const sourceRoles = getConversationRolesForLanguage(detectedLanguage);
+    sourceTranscriptRolesRef.current = sourceRoles;
+
+    sourceRoles.forEach((role) => {
+      clearCaptionIdleCommit(role);
+      const displayState =
+        captionBuffersRef.current[role].replaceWithFinalText(finalText);
+
+      updateConversationCaption(
+        role,
+        displayState.currentBlock.text,
+        true,
+        detectedLanguage,
+      );
+    });
+    resetSourceTranscriptState();
+  }
+
+  function shouldIgnoreOutputTranscript(role: ConversationSessionRole): boolean {
+    return sourceTranscriptRolesRef.current.includes(role);
+  }
+
+  function getConversationRolesForLanguage(
+    language: SupportedLanguage,
+  ): ConversationSessionRole[] {
+    const roles: ConversationSessionRole[] = [];
+
+    if (topLanguage === language) {
+      roles.push("top");
+    }
+
+    if (bottomLanguage === language) {
+      roles.push("bottom");
+    }
+
+    return roles;
+  }
+
+  function scheduleSourceTranscriptReset() {
+    clearTimeoutRef(sourceTranscriptResetTimeoutRef);
+    sourceTranscriptResetTimeoutRef.current = window.setTimeout(() => {
+      const sourceRoles = sourceTranscriptRolesRef.current;
+
+      sourceRoles.forEach((role) => {
+        const displayState = captionBuffersRef.current[role].commitCurrentBlock();
+
+        updateConversationCaption(role, displayState.currentBlock.text, true);
+      });
+      resetSourceTranscriptState();
+      returnActivityToListening();
+    }, CAPTION_IDLE_COMMIT_MS);
+  }
+
+  function resetSourceTranscriptState() {
+    clearTimeoutRef(sourceTranscriptResetTimeoutRef);
+    sourceTranscriptLanguageRef.current = null;
+    sourceTranscriptRolesRef.current = [];
+    sourceTranscriptTextRef.current = "";
+  }
+
   function resetCaptionBuffers(
     nextTopLanguage: SupportedLanguage,
     nextBottomLanguage: SupportedLanguage,
   ) {
     clearAllCaptionIdleCommits();
+    resetSourceTranscriptState();
     captionBuffersRef.current.top.setLanguage(nextTopLanguage);
     captionBuffersRef.current.bottom.setLanguage(nextBottomLanguage);
   }
@@ -777,6 +918,30 @@ function canShowSpeechDetected(
   return activityStatus === "ready" || activityStatus === "listening";
 }
 
+function detectSupportedLanguageFromText(
+  text: string,
+): SupportedLanguage | null {
+  const sample = text.trim();
+
+  if (!sample) {
+    return null;
+  }
+
+  if (/[가-힣]/.test(sample)) {
+    return "ko";
+  }
+
+  if (/[\u3400-\u9fff]/.test(sample)) {
+    return "zh";
+  }
+
+  if (/[a-z]/i.test(sample)) {
+    return "en";
+  }
+
+  return null;
+}
+
 function uniqueSessionIds(sessionIds: string[]): string[] {
   return [...new Set(sessionIds)];
 }
@@ -815,6 +980,7 @@ type ConversationCaptionOptions = {
   topText: string;
   bottomText: string;
   isFinal?: boolean;
+  detectedLanguage?: SupportedLanguage | "unknown";
 };
 
 function createConversationCaption({
@@ -824,11 +990,13 @@ function createConversationCaption({
   topText,
   bottomText,
   isFinal = false,
+  detectedLanguage,
 }: ConversationCaptionOptions): ConversationCaptionEvent {
   return {
     type: isFinal ? "caption_final" : "caption_delta",
     mode: "conversation",
     sessionId,
+    detectedLanguage,
     top: {
       language: topLanguage,
       text: topText,

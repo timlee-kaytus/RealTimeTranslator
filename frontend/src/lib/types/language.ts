@@ -14,6 +14,12 @@ export const LANGUAGE_SELECT_LABELS: Record<SupportedLanguage, string> = {
   zh: "중국어(中文)",
 };
 
+export const LANGUAGE_FLAG_LABELS: Record<SupportedLanguage, string> = {
+  ko: "🇰🇷",
+  en: "🇺🇸",
+  zh: "🇨🇳",
+};
+
 export const OPENAI_LANGUAGE_CODES: Record<SupportedLanguage, string> = {
   ko: "ko",
   en: "en",

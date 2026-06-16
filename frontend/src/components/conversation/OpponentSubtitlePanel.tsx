@@ -18,7 +18,7 @@ export function OpponentSubtitlePanel({
 }: OpponentSubtitlePanelProps) {
   return (
     <SubtitlePanel
-      title="상대방 화면"
+      title="상대방 언어"
       Icon={UsersRound}
       accentClassName="text-emerald-700"
       className="opponent-panel"
@@ -26,7 +26,7 @@ export function OpponentSubtitlePanel({
       language={language}
       text={text}
       fontSize={fontSize}
-      placeholder="상대방 화면 자막이 여기에 표시됩니다."
+      placeholder="상대방 언어 자막이 여기에 표시됩니다."
       onLanguageChange={onLanguageChange}
     />
   );

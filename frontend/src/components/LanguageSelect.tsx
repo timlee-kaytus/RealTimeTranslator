@@ -1,4 +1,6 @@
 import {
+  LANGUAGE_FLAG_LABELS,
+  LANGUAGE_LABELS,
   LANGUAGE_SELECT_LABELS,
   SUPPORTED_LANGUAGES,
 } from "@/lib/types/language";
@@ -23,12 +25,17 @@ export function LanguageSelect({
       <select
         id={id}
         value={value}
+        aria-label={`${label} ${LANGUAGE_LABELS[value]}`}
         onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-        className="h-10 rounded-[8px] border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        className="h-10 w-16 rounded-[8px] border border-zinc-300 bg-white px-2 text-center text-xl font-semibold text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
       >
         {SUPPORTED_LANGUAGES.map((language) => (
-          <option key={language} value={language}>
-            {LANGUAGE_SELECT_LABELS[language]}
+          <option
+            key={language}
+            value={language}
+            aria-label={LANGUAGE_SELECT_LABELS[language]}
+          >
+            {LANGUAGE_FLAG_LABELS[language]}
           </option>
         ))}
       </select>

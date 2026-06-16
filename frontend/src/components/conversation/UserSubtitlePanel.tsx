@@ -18,14 +18,15 @@ export function UserSubtitlePanel({
 }: UserSubtitlePanelProps) {
   return (
     <SubtitlePanel
-      title="내 화면"
+      title="내 언어"
       Icon={UserRound}
       accentClassName="text-cyan-700"
+      className="user-panel"
       languageSelectId="user-language"
       language={language}
       text={text}
       fontSize={fontSize}
-      placeholder="내 화면 자막이 여기에 표시됩니다."
+      placeholder="내 언어 자막이 여기에 표시됩니다."
       onLanguageChange={onLanguageChange}
     />
   );

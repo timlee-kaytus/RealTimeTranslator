@@ -69,6 +69,10 @@ export class CaptionBuffer {
     return this.applyText(text, true);
   }
 
+  replaceCurrentText(text: string): CaptionDisplayState {
+    return this.applyText(text, false);
+  }
+
   commitCurrentBlock(): CaptionDisplayState {
     if (!this.state.currentBlock.text || this.state.currentBlock.isFinal) {
       return this.getState();

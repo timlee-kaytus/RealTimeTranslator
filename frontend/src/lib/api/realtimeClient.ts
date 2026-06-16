@@ -34,8 +34,12 @@ export type RealtimeTranslationConnection = {
 export type ConnectRealtimeTranslationOptions = {
   sourceStream: MediaStream;
   clientSecret: string;
+  enableInputTranscription?: boolean;
+  inputTranscriptionModel?: string;
   stopSourceTracksOnClose?: boolean;
   onStatusChange?: (status: RealtimeConnectionStatus) => void;
+  onInputTranscriptDelta?: (delta: string) => void;
+  onInputTranscriptFinal?: (text: string) => void;
   onTranscriptDelta: (delta: string) => void;
   onTranscriptFinal?: (text: string) => void;
   onError?: (message: string) => void;
@@ -111,8 +115,12 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
 export async function connectOpenAIRealtimeTranslation({
   sourceStream,
   clientSecret,
+  enableInputTranscription = false,
+  inputTranscriptionModel = "gpt-realtime-whisper",
   stopSourceTracksOnClose = true,
   onStatusChange,
+  onInputTranscriptDelta,
+  onInputTranscriptFinal,
   onTranscriptDelta,
   onTranscriptFinal,
   onError,
@@ -174,7 +182,11 @@ export async function connectOpenAIRealtimeTranslation({
     peerConnection.ondatachannel = ({ channel }) => {
       if (channel.label === "oai-events") {
         attachRealtimeEventHandlers(channel, {
+          enableInputTranscription,
+          inputTranscriptionModel,
           onStatusChange,
+          onInputTranscriptDelta,
+          onInputTranscriptFinal,
           onTranscriptDelta,
           onTranscriptFinal,
           onError,
@@ -183,7 +195,11 @@ export async function connectOpenAIRealtimeTranslation({
     };
 
     attachRealtimeEventHandlers(dataChannel, {
+      enableInputTranscription,
+      inputTranscriptionModel,
       onStatusChange,
+      onInputTranscriptDelta,
+      onInputTranscriptFinal,
       onTranscriptDelta,
       onTranscriptFinal,
       onError,
@@ -228,13 +244,21 @@ export async function connectOpenAIRealtimeTranslation({
 function attachRealtimeEventHandlers(
   dataChannel: RTCDataChannel,
   {
+    enableInputTranscription,
+    inputTranscriptionModel,
     onStatusChange,
+    onInputTranscriptDelta,
+    onInputTranscriptFinal,
     onTranscriptDelta,
     onTranscriptFinal,
     onError,
   }: Omit<ConnectRealtimeTranslationOptions, "sourceStream" | "clientSecret">,
 ) {
   dataChannel.onopen = () => {
+    if (enableInputTranscription) {
+      sendInputTranscriptionUpdate(dataChannel, inputTranscriptionModel);
+    }
+
     onStatusChange?.("listening");
   };
 
@@ -242,6 +266,25 @@ function attachRealtimeEventHandlers(
     const event = parseRealtimeTranslationEvent(data);
 
     if (!event.type) {
+      return;
+    }
+
+    if (event.type === "session.input_transcript.delta") {
+      const delta = readEventText(event.delta);
+
+      if (delta) {
+        onInputTranscriptDelta?.(delta);
+      }
+      return;
+    }
+
+    if (
+      event.type === "session.input_transcript.done" ||
+      event.type === "session.input_transcript.final"
+    ) {
+      onInputTranscriptFinal?.(
+        readEventText(event.transcript) ?? readEventText(event.text) ?? "",
+      );
       return;
     }
 
@@ -290,6 +333,30 @@ function attachRealtimeEventHandlers(
   dataChannel.onclose = () => {
     onStatusChange?.("stopped");
   };
+}
+
+function sendInputTranscriptionUpdate(
+  dataChannel: RTCDataChannel,
+  model: string | undefined,
+) {
+  if (dataChannel.readyState !== "open") {
+    return;
+  }
+
+  dataChannel.send(
+    JSON.stringify({
+      type: "session.update",
+      session: {
+        audio: {
+          input: {
+            transcription: {
+              model: model ?? "gpt-realtime-whisper",
+            },
+          },
+        },
+      },
+    }),
+  );
 }
 
 function parseRealtimeTranslationEvent(data: unknown): RealtimeTranslationEvent {
