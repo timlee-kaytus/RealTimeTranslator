@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
-import { StatusPill } from "@/components/StatusPill";
 import { ConversationActivityHint } from "@/components/conversation/ConversationActivityHint";
 import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
 import { OpponentSubtitlePanel } from "@/components/conversation/OpponentSubtitlePanel";
@@ -649,7 +648,6 @@ export function ConversationMode() {
       />
 
       <div className="flex flex-wrap items-center justify-center gap-3 rounded-[8px] border border-zinc-200 bg-white px-3 py-3 shadow-sm">
-        <StatusPill status={status} />
         <MicLevelMeter
           disabled={!active && !busy}
           level={micLevel}

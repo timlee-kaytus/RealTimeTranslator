@@ -39,7 +39,7 @@ export function ConversationActivityHint({
   return (
     <div
       aria-live="polite"
-      className={`flex h-10 min-w-56 items-center justify-center rounded-[8px] border px-3 text-center text-xs font-bold ${activityClasses[status]}`}
+      className={`inline-flex h-8 w-fit max-w-full items-center justify-center rounded-full border px-3 text-center text-xs font-bold ${activityClasses[status]}`}
     >
       {activityMessages[status]}
     </div>
