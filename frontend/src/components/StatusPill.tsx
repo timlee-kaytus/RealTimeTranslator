@@ -7,9 +7,9 @@ type StatusPillProps = {
 const statusLabels: Record<RealtimeConnectionStatus, string> = {
   idle: "대기",
   connecting: "연결 중",
-  listening: "청취 중",
+  listening: "듣는 중",
   translating: "번역 중",
-  reconnecting: "재연결",
+  reconnecting: "재연결 중",
   error: "오류",
   stopped: "중지됨",
 };
@@ -33,4 +33,3 @@ export function StatusPill({ status }: StatusPillProps) {
     </span>
   );
 }
-

@@ -84,7 +84,8 @@ export function FloatingCaptionLauncher({
     }
 
     if (statusElement) {
-      statusElement.textContent = status === "translating" ? "번역 중" : "대기";
+      statusElement.textContent = getFloatingStatusLabel(status);
+      statusElement.dataset.status = status;
     }
 
     if (textElement) {
@@ -227,7 +228,7 @@ function createFloatingCaptionMarkup(settings: FloatingCaptionSettings) {
         <div class="title" id="caption-title">실시간 번역 자막</div>
         <div class="meta">
           <span id="caption-language">영어</span>
-          <span id="caption-status">대기</span>
+          <span id="caption-status" data-status="idle">대기</span>
         </div>
       </div>
       <div class="controls">
@@ -242,6 +243,20 @@ function createFloatingCaptionMarkup(settings: FloatingCaptionSettings) {
     </main>
   </body>
 </html>`;
+}
+
+function getFloatingStatusLabel(status: RealtimeConnectionStatus): string {
+  const labels: Record<RealtimeConnectionStatus, string> = {
+    idle: "대기",
+    connecting: "연결 중",
+    listening: "듣는 중",
+    translating: "번역 중",
+    reconnecting: "재연결 중",
+    error: "오류",
+    stopped: "중지됨",
+  };
+
+  return labels[status];
 }
 
 function attachFloatingCaptionHandlers(

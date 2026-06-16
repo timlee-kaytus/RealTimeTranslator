@@ -7,6 +7,7 @@ import { MicToggleButton } from "@/components/MicToggleButton";
 import { StatusPill } from "@/components/StatusPill";
 import { CaptionSizeControls } from "@/components/presentation/CaptionSizeControls";
 import { FloatingCaptionLauncher } from "@/components/presentation/FloatingCaptionLauncher";
+import { PresentationSessionTimer } from "@/components/presentation/PresentationSessionTimer";
 import { CaptionPreview } from "@/components/shared/CaptionPreview";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import {
@@ -17,10 +18,13 @@ import {
 } from "@/lib/api/backendClient";
 import {
   connectOpenAIRealtimeTranslation,
+  getRealtimeUserMessage,
+  getSessionExpiredMessage,
   requestMicrophoneAccess,
   type RealtimeTranslationConnection,
 } from "@/lib/api/realtimeClient";
 import { createUiSessionId } from "@/lib/browser/sessionId";
+import { nowEpochMilliseconds } from "@/lib/browser/time";
 import { createMockPresentationEvent } from "@/lib/mock/mockRealtimeEvents";
 import {
   loadFloatingCaptionSettings,
@@ -34,6 +38,8 @@ import type {
 import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
 const initialOutputLanguage: SupportedLanguage = "en";
+const maxSessionSeconds = 15 * 60;
+const sessionWarningSeconds = 60;
 
 export function PresentationMode() {
   const [outputLanguage, setOutputLanguage] = useState<SupportedLanguage>(
@@ -46,14 +52,30 @@ export function PresentationMode() {
     createMockPresentationEvent(0, initialOutputLanguage),
   );
   const [settings, setSettings] = useState(DEFAULT_FLOATING_CAPTION_SETTINGS);
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const realtimeConnectionRef = useRef<RealtimeTranslationConnection | null>(
     null,
   );
   const transcriptRef = useRef("");
+  const sessionExpireTimeoutRef = useRef<number | null>(null);
+  const activeSessionIdRef = useRef(sessionId);
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
+  const sessionTimerRunning = sessionStartedAt !== null && (active || busy);
+
+  useEffect(() => {
+    return () => {
+      realtimeConnectionRef.current?.close();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+
+      if (sessionExpireTimeoutRef.current !== null) {
+        window.clearTimeout(sessionExpireTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -66,6 +88,22 @@ export function PresentationMode() {
   useEffect(() => {
     saveFloatingCaptionSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (sessionStartedAt === null || !sessionTimerRunning) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const nextElapsedSeconds = Math.min(
+        maxSessionSeconds,
+        Math.floor((nowEpochMilliseconds() - sessionStartedAt) / 1000),
+      );
+      setElapsedSeconds(nextElapsedSeconds);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [sessionStartedAt, sessionTimerRunning]);
 
   useEffect(() => {
     if (!active || !shouldUseMockRealtime()) {
@@ -117,13 +155,17 @@ export function PresentationMode() {
       });
 
       setSessionId(session.sessionId);
+      activeSessionIdRef.current = session.sessionId;
+      startSessionTimer();
 
       if (!shouldUseMockRealtime()) {
         if (!mediaStream) {
           throw new Error("마이크 권한을 확인하지 못했습니다.");
         }
 
-        setCaption(createPresentationCaption("", outputLanguage, session.sessionId));
+        setCaption(
+          createPresentationCaption("", outputLanguage, session.sessionId),
+        );
         realtimeConnectionRef.current =
           await connectOpenAIRealtimeTranslation({
             sourceStream: mediaStream,
@@ -167,25 +209,29 @@ export function PresentationMode() {
       setStatus("listening");
     } catch (error) {
       cleanupRealtimeConnection();
+      stopSessionTimer();
       setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "발표 통역 세션을 시작하지 못했습니다.",
-      );
+      setErrorMessage(getRealtimeUserMessage(error));
     }
   }
 
-  async function stopSession() {
-    const currentSessionId = sessionId;
+  async function stopSession(
+    reason: "user_stop" | "session_expired" = "user_stop",
+  ) {
+    const currentSessionId = activeSessionIdRef.current;
 
     setStatus("stopped");
     cleanupRealtimeConnection();
+    stopSessionTimer();
+
+    if (reason === "user_stop") {
+      setErrorMessage("");
+    }
 
     try {
       await endRealtimeSession({
         sessionId: currentSessionId,
-        reason: "user_stop",
+        reason,
       });
       await recordUsageEvent({
         sessionId: currentSessionId,
@@ -194,8 +240,10 @@ export function PresentationMode() {
         timestamp: new Date().toISOString(),
       });
     } catch {
-      setStatus("error");
-      setErrorMessage("세션 종료 요청을 완료하지 못했습니다.");
+      if (reason !== "session_expired") {
+        setStatus("error");
+        setErrorMessage(getRealtimeUserMessage("network"));
+      }
     }
   }
 
@@ -204,6 +252,29 @@ export function PresentationMode() {
     realtimeConnectionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     mediaStreamRef.current = null;
+  }
+
+  function startSessionTimer() {
+    clearSessionExpireTimeout();
+    setElapsedSeconds(0);
+    setSessionStartedAt(nowEpochMilliseconds());
+    sessionExpireTimeoutRef.current = window.setTimeout(() => {
+      setElapsedSeconds(maxSessionSeconds);
+      setErrorMessage(getSessionExpiredMessage());
+      void stopSession("session_expired");
+    }, maxSessionSeconds * 1000);
+  }
+
+  function stopSessionTimer() {
+    clearSessionExpireTimeout();
+    setSessionStartedAt(null);
+  }
+
+  function clearSessionExpireTimeout() {
+    if (sessionExpireTimeoutRef.current !== null) {
+      window.clearTimeout(sessionExpireTimeoutRef.current);
+      sessionExpireTimeoutRef.current = null;
+    }
   }
 
   function handleOutputLanguageChange(language: SupportedLanguage) {
@@ -234,6 +305,13 @@ export function PresentationMode() {
           />
           <ErrorBanner message={errorMessage} />
         </div>
+
+        <PresentationSessionTimer
+          elapsedSeconds={elapsedSeconds}
+          maxSeconds={maxSessionSeconds}
+          warningSeconds={sessionWarningSeconds}
+          running={sessionTimerRunning}
+        />
 
         <CaptionSizeControls
           settings={settings}

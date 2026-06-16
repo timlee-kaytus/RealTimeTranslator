@@ -65,7 +65,7 @@ export type CreateRealtimeSessionResponse = {
 
 export type EndRealtimeSessionRequest = {
   sessionId: string;
-  reason: "user_stop" | "window_closed" | "error";
+  reason: "user_stop" | "window_closed" | "error" | "session_expired";
 };
 
 export type UsageEventRequest = {
@@ -74,4 +74,3 @@ export type UsageEventRequest = {
   mode: TranslationMode;
   timestamp: string;
 };
-

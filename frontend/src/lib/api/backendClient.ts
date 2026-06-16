@@ -122,6 +122,8 @@ function normalizeRealtimeSessionResponse(
     expiresAt:
       readIsoDate(record.expiresAt) ??
       readIsoDate(record.expires_at) ??
+      readIsoDateFromNested(record.client_secret, "expires_at") ??
+      readIsoDateFromNested(record.clientSecret, "expires_at") ??
       new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     model: readString(record.model) ?? "gpt-realtime-translate",
   };
@@ -154,6 +156,10 @@ function readIsoDate(value: unknown): string | undefined {
     const milliseconds = value > 10_000_000_000 ? value : value * 1000;
     return new Date(milliseconds).toISOString();
   }
+}
+
+function readIsoDateFromNested(value: unknown, key: string): string | undefined {
+  return isRecord(value) ? readIsoDate(value[key]) : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

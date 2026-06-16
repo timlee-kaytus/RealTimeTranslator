@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
 import { StatusPill } from "@/components/StatusPill";
 import { OpponentSubtitlePanel } from "@/components/conversation/OpponentSubtitlePanel";
 import { UserSubtitlePanel } from "@/components/conversation/UserSubtitlePanel";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
-import {
-  createRealtimeSession,
-  endRealtimeSession,
-  recordUsageEvent,
-} from "@/lib/api/backendClient";
-import { requestMicrophoneAccess } from "@/lib/api/realtimeClient";
+import { getRealtimeUserMessage } from "@/lib/api/realtimeClient";
 import { createUiSessionId } from "@/lib/browser/sessionId";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import type { SupportedLanguage } from "@/lib/types/language";
@@ -35,7 +30,6 @@ export function ConversationMode() {
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
     createMockConversationEvent(0, initialTopLanguage, initialBottomLanguage),
   );
-  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
@@ -83,60 +77,21 @@ export function ConversationMode() {
     setErrorMessage("");
 
     try {
-      mediaStreamRef.current = await requestMicrophoneAccess();
       const uiSessionId = createUiSessionId();
-      const session = await createRealtimeSession({
-        mode: "conversation",
-        targetLanguages: [topLanguage, bottomLanguage],
-        clientId: "anonymous",
-        uiSessionId,
-      });
+      // TODO: Real two-language conversation needs separate translation sessions.
+      const mockSessionId = `mock-${uiSessionId}`;
 
-      setSessionId(session.sessionId);
-      await recordUsageEvent({
-        sessionId: session.sessionId,
-        eventType: "session_started",
-        mode: "conversation",
-        timestamp: new Date().toISOString(),
-      });
+      setSessionId(mockSessionId);
       setStatus("listening");
     } catch (error) {
-      stopLocalMedia();
       setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "통역 세션을 시작하지 못했습니다.",
-      );
+      setErrorMessage(getRealtimeUserMessage(error));
     }
   }
 
   async function stopSession() {
-    const currentSessionId = sessionId;
-
     setStatus("stopped");
-    stopLocalMedia();
-
-    try {
-      await endRealtimeSession({
-        sessionId: currentSessionId,
-        reason: "user_stop",
-      });
-      await recordUsageEvent({
-        sessionId: currentSessionId,
-        eventType: "session_stopped",
-        mode: "conversation",
-        timestamp: new Date().toISOString(),
-      });
-    } catch {
-      setStatus("error");
-      setErrorMessage("세션 종료 요청을 완료하지 못했습니다.");
-    }
-  }
-
-  function stopLocalMedia() {
-    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-    mediaStreamRef.current = null;
+    setErrorMessage("");
   }
 
   function handleTopLanguageChange(language: SupportedLanguage) {
@@ -153,7 +108,9 @@ export function ConversationMode() {
     setBottomLanguage(language);
 
     if (!active) {
-      setCaption(createMockConversationEvent(0, topLanguage, language, sessionId));
+      setCaption(
+        createMockConversationEvent(0, topLanguage, language, sessionId),
+      );
     }
   }
 
