@@ -27,6 +27,7 @@ export function OpponentSubtitlePanel({
       title="상대방 화면"
       Icon={UsersRound}
       accentClassName="text-emerald-700"
+      className="opponent-panel"
       languageSelectId="opponent-language"
       primary={{
         language: primaryLanguage,
@@ -38,8 +39,14 @@ export function OpponentSubtitlePanel({
         text: secondaryText,
         fontSize: secondaryFontSize,
       }}
-      primaryPlaceholder="상대방 언어 자막이 여기에 표시됩니다."
+      primaryPlaceholder={OPPONENT_PLACEHOLDERS[primaryLanguage]}
       onPrimaryLanguageChange={onLanguageChange}
     />
   );
 }
+
+const OPPONENT_PLACEHOLDERS: Record<SupportedLanguage, string> = {
+  ko: "상대방 언어 자막이 여기에 표시됩니다.",
+  en: "The other person's captions will appear here.",
+  zh: "对方语言字幕会显示在这里。",
+};

@@ -52,7 +52,13 @@ export function ConversationMode() {
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
-    createMockConversationEvent(0, initialTopLanguage, initialBottomLanguage),
+    createConversationCaption({
+      sessionId: "mock-session",
+      topLanguage: initialTopLanguage,
+      bottomLanguage: initialBottomLanguage,
+      topText: "",
+      bottomText: "",
+    }),
   );
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const realtimeConnectionsRef = useRef<
@@ -409,7 +415,15 @@ export function ConversationMode() {
 
     if (!active) {
       resetCaptionBuffers(language, bottomLanguage);
-      setCaptionFromMock(0, language, bottomLanguage, sessionId);
+      setCaption(
+        createConversationCaption({
+          sessionId,
+          topLanguage: language,
+          bottomLanguage,
+          topText: "",
+          bottomText: "",
+        }),
+      );
     }
   }
 
@@ -418,7 +432,15 @@ export function ConversationMode() {
 
     if (!active) {
       resetCaptionBuffers(topLanguage, language);
-      setCaptionFromMock(0, topLanguage, language, sessionId);
+      setCaption(
+        createConversationCaption({
+          sessionId,
+          topLanguage,
+          bottomLanguage: language,
+          topText: "",
+          bottomText: "",
+        }),
+      );
     }
   }
 
@@ -452,37 +474,6 @@ export function ConversationMode() {
     clearAllCaptionIdleCommits();
     captionBuffersRef.current.top.setLanguage(nextTopLanguage);
     captionBuffersRef.current.bottom.setLanguage(nextBottomLanguage);
-  }
-
-  function setCaptionFromMock(
-    index: number,
-    nextTopLanguage: SupportedLanguage,
-    nextBottomLanguage: SupportedLanguage,
-    currentSessionId: string,
-  ) {
-    const mockCaption = createMockConversationEvent(
-      index,
-      nextTopLanguage,
-      nextBottomLanguage,
-      currentSessionId,
-    );
-    const topDisplayState =
-      captionBuffersRef.current.top.replaceWithFinalText(mockCaption.top.text);
-    const bottomDisplayState =
-      captionBuffersRef.current.bottom.replaceWithFinalText(
-        mockCaption.bottom.text,
-      );
-
-    setCaption(
-      createConversationCaption({
-        sessionId: currentSessionId,
-        topLanguage: nextTopLanguage,
-        bottomLanguage: nextBottomLanguage,
-        topText: topDisplayState.currentBlock.text,
-        bottomText: bottomDisplayState.currentBlock.text,
-        isFinal: true,
-      }),
-    );
   }
 
   return (

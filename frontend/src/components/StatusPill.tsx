@@ -21,7 +21,7 @@ const statusClasses: Record<RealtimeConnectionStatus, string> = {
   translating: "border-cyan-300 bg-cyan-50 text-cyan-800",
   reconnecting: "border-amber-300 bg-amber-50 text-amber-800",
   error: "border-red-300 bg-red-50 text-red-800",
-  stopped: "border-zinc-300 bg-zinc-100 text-zinc-600",
+  stopped: "border-red-700 bg-red-600 text-white",
 };
 
 export function StatusPill({ status }: StatusPillProps) {

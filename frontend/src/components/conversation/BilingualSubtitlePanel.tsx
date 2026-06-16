@@ -14,6 +14,7 @@ type BilingualSubtitlePanelProps = {
   title: string;
   Icon: LucideIcon;
   accentClassName: string;
+  className?: string;
   primary: BilingualCaptionText;
   secondary: BilingualCaptionText;
   primaryPlaceholder: string;
@@ -25,6 +26,7 @@ export function BilingualSubtitlePanel({
   title,
   Icon,
   accentClassName,
+  className = "",
   primary,
   secondary,
   primaryPlaceholder,
@@ -32,12 +34,13 @@ export function BilingualSubtitlePanel({
   languageSelectId,
 }: BilingualSubtitlePanelProps) {
   const primaryText = primary.text || primaryPlaceholder;
-  const secondaryText = secondary.text || "Listening...";
   const primaryEmpty = primary.text.length === 0;
   const secondaryEmpty = secondary.text.length === 0;
 
   return (
-    <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
+    <article
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm ${className}`}
+    >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-black text-zinc-800">
           <Icon aria-hidden className={`size-4 ${accentClassName}`} />
@@ -67,20 +70,20 @@ export function BilingualSubtitlePanel({
           </p>
         </section>
 
-        <section className="min-h-0 overflow-hidden border-t border-zinc-100 pt-4">
-          <div className="mb-2 text-xs font-black text-zinc-400">
-            {LANGUAGE_LABELS[secondary.language]}
-          </div>
-          <p
-            lang={secondary.language}
-            className={`mx-auto max-w-4xl overflow-hidden font-semibold leading-[1.2] text-zinc-700 opacity-75 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${
-              secondaryEmpty ? "text-zinc-400" : ""
-            }`}
-            style={{ fontSize: secondaryEmpty ? 16 : secondary.fontSize }}
-          >
-            {secondaryText}
-          </p>
-        </section>
+        {!secondaryEmpty && (
+          <section className="min-h-0 overflow-hidden border-t border-zinc-100 pt-4">
+            <div className="mb-2 text-xs font-black text-zinc-400">
+              {LANGUAGE_LABELS[secondary.language]}
+            </div>
+            <p
+              lang={secondary.language}
+              className="mx-auto max-w-4xl overflow-hidden font-semibold leading-[1.2] text-zinc-700 opacity-75 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
+              style={{ fontSize: secondary.fontSize }}
+            >
+              {secondary.text}
+            </p>
+          </section>
+        )}
       </div>
     </article>
   );
