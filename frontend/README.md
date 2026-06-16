@@ -12,6 +12,8 @@ npm run dev
 
 Mock realtime은 기본값으로 켜져 있습니다.
 
+Vercel 배포 시 Root Directory는 `frontend`로 설정합니다.
+
 ## 환경변수
 
 ```env
@@ -34,4 +36,3 @@ NEXT_PUBLIC_BACKEND_BASE_URL=https://api.example.com
 - 사용자 계정/로그인
 - 대화 로그 저장
 - 음성 출력/TTS
-
