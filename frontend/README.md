@@ -18,20 +18,22 @@ Vercel 배포 시 Root Directory는 `frontend`로 설정합니다.
 
 ```env
 NEXT_PUBLIC_USE_MOCK_REALTIME=true
-NEXT_PUBLIC_BACKEND_BASE_URL=https://api.example.com
+NEXT_PUBLIC_BACKEND_BASE_URL=https://api-rtt.kaytus.kr
 ```
+
+실제 Presentation WebRTC 연결을 사용할 때는 `NEXT_PUBLIC_USE_MOCK_REALTIME=false`로 설정합니다.
 
 ## 구현 범위
 
 - 대화 모드 Mock UI
-- 발표 모드 Mock UI
+- 발표 모드 Mock UI 및 OpenAI Realtime Translation WebRTC 연결
 - Document Picture-in-Picture 지원 감지
 - 플로팅 자막 크기 설정 저장
 - 백엔드 API client stub
 
 ## 아직 구현하지 않은 항목
 
-- 실제 OpenAI Realtime 연결
+- Conversation Mode 실제 OpenAI Realtime 연결
 - 실제 API Key 입력 UI
 - 사용자 계정/로그인
 - 대화 로그 저장

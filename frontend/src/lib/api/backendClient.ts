@@ -31,7 +31,7 @@ export async function createRealtimeSession(
     throw new Error("Realtime session request failed.");
   }
 
-  return response.json() as Promise<CreateRealtimeSessionResponse>;
+  return normalizeRealtimeSessionResponse(await response.json(), request);
 }
 
 export async function endRealtimeSession(
@@ -97,4 +97,65 @@ function createMockSession(
         ? "mock-gpt-realtime-translate-presentation"
         : "mock-gpt-realtime-translate-conversation",
   };
+}
+
+function normalizeRealtimeSessionResponse(
+  data: unknown,
+  request: CreateRealtimeSessionRequest,
+): CreateRealtimeSessionResponse {
+  const record = isRecord(data) ? data : {};
+  const clientSecret = readClientSecret(record);
+
+  if (!clientSecret) {
+    throw new Error("Backend did not return a realtime client secret.");
+  }
+
+  return {
+    sessionId:
+      readString(record.sessionId) ??
+      readString(record.session_id) ??
+      readString(record.id) ??
+      `openai-${request.uiSessionId}`,
+    provider: readString(record.provider) === "mock" ? "mock" : "openai",
+    transport: readString(record.transport) === "mock" ? "mock" : "webrtc",
+    clientSecret,
+    expiresAt:
+      readIsoDate(record.expiresAt) ??
+      readIsoDate(record.expires_at) ??
+      new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    model: readString(record.model) ?? "gpt-realtime-translate",
+  };
+}
+
+function readClientSecret(record: Record<string, unknown>): string | undefined {
+  return (
+    readString(record.clientSecret) ??
+    readString(record.client_secret) ??
+    readString(record.value) ??
+    readStringFromNested(record.clientSecret, "value") ??
+    readStringFromNested(record.client_secret, "value")
+  );
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readStringFromNested(value: unknown, key: string): string | undefined {
+  return isRecord(value) ? readString(value[key]) : undefined;
+}
+
+function readIsoDate(value: unknown): string | undefined {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    const milliseconds = value > 10_000_000_000 ? value : value * 1000;
+    return new Date(milliseconds).toISOString();
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

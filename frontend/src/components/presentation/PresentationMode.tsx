@@ -13,8 +13,13 @@ import {
   createRealtimeSession,
   endRealtimeSession,
   recordUsageEvent,
+  shouldUseMockRealtime,
 } from "@/lib/api/backendClient";
-import { requestMicrophoneAccess } from "@/lib/api/realtimeClient";
+import {
+  connectOpenAIRealtimeTranslation,
+  requestMicrophoneAccess,
+  type RealtimeTranslationConnection,
+} from "@/lib/api/realtimeClient";
 import { createUiSessionId } from "@/lib/browser/sessionId";
 import { createMockPresentationEvent } from "@/lib/mock/mockRealtimeEvents";
 import {
@@ -42,6 +47,10 @@ export function PresentationMode() {
   );
   const [settings, setSettings] = useState(DEFAULT_FLOATING_CAPTION_SETTINGS);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const realtimeConnectionRef = useRef<RealtimeTranslationConnection | null>(
+    null,
+  );
+  const transcriptRef = useRef("");
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
@@ -59,7 +68,7 @@ export function PresentationMode() {
   }, [settings]);
 
   useEffect(() => {
-    if (!active) {
+    if (!active || !shouldUseMockRealtime()) {
       return;
     }
 
@@ -94,9 +103,11 @@ export function PresentationMode() {
   async function startSession() {
     setStatus("connecting");
     setErrorMessage("");
+    transcriptRef.current = "";
 
     try {
-      mediaStreamRef.current = await requestMicrophoneAccess();
+      const mediaStream = await requestMicrophoneAccess();
+      mediaStreamRef.current = mediaStream;
       const uiSessionId = createUiSessionId();
       const session = await createRealtimeSession({
         mode: "presentation",
@@ -106,6 +117,47 @@ export function PresentationMode() {
       });
 
       setSessionId(session.sessionId);
+
+      if (!shouldUseMockRealtime()) {
+        if (!mediaStream) {
+          throw new Error("마이크 권한을 확인하지 못했습니다.");
+        }
+
+        setCaption(createPresentationCaption("", outputLanguage, session.sessionId));
+        realtimeConnectionRef.current =
+          await connectOpenAIRealtimeTranslation({
+            sourceStream: mediaStream,
+            clientSecret: session.clientSecret,
+            onStatusChange: setStatus,
+            onTranscriptDelta: (delta) => {
+              transcriptRef.current += delta;
+              setCaption(
+                createPresentationCaption(
+                  transcriptRef.current,
+                  outputLanguage,
+                  session.sessionId,
+                ),
+              );
+            },
+            onTranscriptFinal: (text) => {
+              if (text) {
+                transcriptRef.current = text;
+                setCaption(
+                  createPresentationCaption(
+                    text,
+                    outputLanguage,
+                    session.sessionId,
+                    true,
+                  ),
+                );
+              }
+            },
+            onError: (message) => {
+              setErrorMessage(message);
+            },
+          });
+      }
+
       await recordUsageEvent({
         sessionId: session.sessionId,
         eventType: "session_started",
@@ -114,7 +166,7 @@ export function PresentationMode() {
       });
       setStatus("listening");
     } catch (error) {
-      stopLocalMedia();
+      cleanupRealtimeConnection();
       setStatus("error");
       setErrorMessage(
         error instanceof Error
@@ -128,7 +180,7 @@ export function PresentationMode() {
     const currentSessionId = sessionId;
 
     setStatus("stopped");
-    stopLocalMedia();
+    cleanupRealtimeConnection();
 
     try {
       await endRealtimeSession({
@@ -147,7 +199,9 @@ export function PresentationMode() {
     }
   }
 
-  function stopLocalMedia() {
+  function cleanupRealtimeConnection() {
+    realtimeConnectionRef.current?.close();
+    realtimeConnectionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     mediaStreamRef.current = null;
   }
@@ -202,4 +256,23 @@ export function PresentationMode() {
       />
     </section>
   );
+}
+
+function createPresentationCaption(
+  text: string,
+  language: SupportedLanguage,
+  sessionId: string,
+  isFinal = false,
+): PresentationCaptionEvent {
+  return {
+    type: isFinal ? "caption_final" : "caption_delta",
+    mode: "presentation",
+    sessionId,
+    output: {
+      language,
+      text,
+    },
+    isFinal,
+    timestamp: new Date().toISOString(),
+  };
 }
