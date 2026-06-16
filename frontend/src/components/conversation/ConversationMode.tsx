@@ -24,6 +24,7 @@ import { CaptionBuffer } from "@/lib/caption/captionBuffer";
 import {
   CAPTION_IDLE_COMMIT_MS,
   getCaptionDisplayFontSize,
+  getSecondaryCaptionFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import type { SupportedLanguage } from "@/lib/types/language";
@@ -77,16 +78,20 @@ export function ConversationMode() {
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
-  const topCaptionFontSize = getCaptionDisplayFontSize({
+  const topPrimaryFontSize = getCaptionDisplayFontSize({
     mode: "conversation",
     language: topLanguage,
     text: caption.top.text,
   });
-  const bottomCaptionFontSize = getCaptionDisplayFontSize({
+  const bottomPrimaryFontSize = getCaptionDisplayFontSize({
     mode: "conversation",
     language: bottomLanguage,
     text: caption.bottom.text,
   });
+  const topSecondaryFontSize =
+    getSecondaryCaptionFontSize(bottomPrimaryFontSize);
+  const bottomSecondaryFontSize =
+    getSecondaryCaptionFontSize(topPrimaryFontSize);
 
   useEffect(() => {
     const captionBuffers = captionBuffersRef.current;
@@ -483,9 +488,12 @@ export function ConversationMode() {
   return (
     <section className="grid min-h-[calc(100dvh-76px)] grid-rows-[1fr_auto_1fr] gap-3 p-3 md:p-4">
       <OpponentSubtitlePanel
-        language={topLanguage}
-        text={caption.top.text}
-        fontSize={topCaptionFontSize}
+        primaryLanguage={topLanguage}
+        primaryText={caption.top.text}
+        primaryFontSize={topPrimaryFontSize}
+        secondaryLanguage={bottomLanguage}
+        secondaryText={caption.bottom.text}
+        secondaryFontSize={topSecondaryFontSize}
         onLanguageChange={handleTopLanguageChange}
       />
 
@@ -500,9 +508,12 @@ export function ConversationMode() {
       </div>
 
       <UserSubtitlePanel
-        language={bottomLanguage}
-        text={caption.bottom.text}
-        fontSize={bottomCaptionFontSize}
+        primaryLanguage={bottomLanguage}
+        primaryText={caption.bottom.text}
+        primaryFontSize={bottomPrimaryFontSize}
+        secondaryLanguage={topLanguage}
+        secondaryText={caption.top.text}
+        secondaryFontSize={bottomSecondaryFontSize}
         onLanguageChange={handleBottomLanguageChange}
       />
     </section>

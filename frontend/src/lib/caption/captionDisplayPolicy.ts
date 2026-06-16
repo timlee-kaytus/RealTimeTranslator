@@ -23,15 +23,15 @@ export const CAPTION_DISPLAY_POLICY: Record<TranslationMode, CaptionModePolicy> 
     minFontSize: 36,
   },
   conversation: {
-    maxLines: 4,
+    maxLines: 3,
     softCharLimit: {
-      ko: 90,
-      zh: 90,
-      en: 180,
+      ko: 84,
+      zh: 84,
+      en: 168,
     },
     maxVisibleBlocks: 1,
     defaultFontSize: 48,
-    minFontSize: 32,
+    minFontSize: 30,
   },
 };
 
@@ -55,6 +55,10 @@ export function getCaptionDisplayFontSize({
   const adjustedFontSize = baseFontSize - overflowingLines * 4;
 
   return Math.max(policy.minFontSize, Math.min(baseFontSize, adjustedFontSize));
+}
+
+export function getSecondaryCaptionFontSize(primaryFontSize: number): number {
+  return Math.max(Math.floor(primaryFontSize * 0.55), 18);
 }
 
 export function estimateCaptionLineCount(
