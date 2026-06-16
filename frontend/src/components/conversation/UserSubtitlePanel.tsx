@@ -8,12 +8,14 @@ import type { SupportedLanguage } from "@/lib/types/language";
 type UserSubtitlePanelProps = {
   language: SupportedLanguage;
   text: string;
+  fontSize: number;
   onLanguageChange: (language: SupportedLanguage) => void;
 };
 
 export function UserSubtitlePanel({
   language,
   text,
+  fontSize,
   onLanguageChange,
 }: UserSubtitlePanelProps) {
   return (
@@ -30,7 +32,7 @@ export function UserSubtitlePanel({
         />
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-6">
-        <SubtitleText language={language} text={text} />
+        <SubtitleText language={language} text={text} fontSize={fontSize} />
       </div>
       <div className="text-center text-xs font-bold text-zinc-500">
         {LANGUAGE_LABELS[language]}
@@ -38,4 +40,3 @@ export function UserSubtitlePanel({
     </article>
   );
 }
-

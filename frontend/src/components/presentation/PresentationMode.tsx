@@ -25,6 +25,11 @@ import {
 } from "@/lib/api/realtimeClient";
 import { createUiSessionId } from "@/lib/browser/sessionId";
 import { nowEpochMilliseconds } from "@/lib/browser/time";
+import { CaptionBuffer } from "@/lib/caption/captionBuffer";
+import {
+  CAPTION_IDLE_COMMIT_MS,
+  getCaptionDisplayFontSize,
+} from "@/lib/caption/captionDisplayPolicy";
 import { createMockPresentationEvent } from "@/lib/mock/mockRealtimeEvents";
 import {
   loadFloatingCaptionSettings,
@@ -58,18 +63,31 @@ export function PresentationMode() {
   const realtimeConnectionRef = useRef<RealtimeTranslationConnection | null>(
     null,
   );
-  const transcriptRef = useRef("");
+  const captionBufferRef = useRef(
+    new CaptionBuffer({
+      mode: "presentation",
+      language: initialOutputLanguage,
+    }),
+  );
+  const captionIdleCommitTimeoutRef = useRef<number | null>(null);
   const sessionExpireTimeoutRef = useRef<number | null>(null);
   const activeSessionIdRef = useRef(sessionId);
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
   const sessionTimerRunning = sessionStartedAt !== null && (active || busy);
+  const captionFontSize = getCaptionDisplayFontSize({
+    mode: "presentation",
+    language: outputLanguage,
+    text: caption.output.text,
+    preferredFontSize: settings.fontSize,
+  });
 
   useEffect(() => {
     return () => {
       realtimeConnectionRef.current?.close();
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      clearCaptionIdleCommit();
 
       if (sessionExpireTimeoutRef.current !== null) {
         window.clearTimeout(sessionExpireTimeoutRef.current);
@@ -114,8 +132,23 @@ export function PresentationMode() {
 
     const emitMockCaption = () => {
       setStatus(index % 2 === 0 ? "listening" : "translating");
+      const mockCaption = createMockPresentationEvent(
+        index,
+        outputLanguage,
+        sessionId,
+      );
+      const displayState = captionBufferRef.current.appendDelta(
+        mockCaption.output.text,
+      );
+      const finalDisplayState = captionBufferRef.current.commitCurrentBlock();
+
       setCaption(
-        createMockPresentationEvent(index, outputLanguage, sessionId),
+        createPresentationCaption(
+          finalDisplayState.currentBlock.text || displayState.currentBlock.text,
+          outputLanguage,
+          sessionId,
+          true,
+        ),
       );
       index += 1;
     };
@@ -141,7 +174,7 @@ export function PresentationMode() {
   async function startSession() {
     setStatus("connecting");
     setErrorMessage("");
-    transcriptRef.current = "";
+    resetCaptionBuffer(outputLanguage);
 
     try {
       const mediaStream = await requestMicrophoneAccess();
@@ -172,21 +205,27 @@ export function PresentationMode() {
             clientSecret: session.clientSecret,
             onStatusChange: setStatus,
             onTranscriptDelta: (delta) => {
-              transcriptRef.current += delta;
+              const displayState = captionBufferRef.current.appendDelta(delta);
+
               setCaption(
                 createPresentationCaption(
-                  transcriptRef.current,
+                  displayState.currentBlock.text,
                   outputLanguage,
                   session.sessionId,
+                  displayState.currentBlock.isFinal,
                 ),
               );
+              scheduleCaptionIdleCommit(outputLanguage, session.sessionId);
             },
             onTranscriptFinal: (text) => {
               if (text) {
-                transcriptRef.current = text;
+                clearCaptionIdleCommit();
+                const displayState =
+                  captionBufferRef.current.replaceWithFinalText(text);
+
                 setCaption(
                   createPresentationCaption(
-                    text,
+                    displayState.currentBlock.text,
                     outputLanguage,
                     session.sessionId,
                     true,
@@ -210,6 +249,7 @@ export function PresentationMode() {
     } catch (error) {
       cleanupRealtimeConnection();
       stopSessionTimer();
+      resetCaptionBuffer(outputLanguage);
       setStatus("error");
       setErrorMessage(getRealtimeUserMessage(error));
     }
@@ -223,6 +263,8 @@ export function PresentationMode() {
     setStatus("stopped");
     cleanupRealtimeConnection();
     stopSessionTimer();
+    resetCaptionBuffer(outputLanguage);
+    setCaption(createPresentationCaption("", outputLanguage, currentSessionId));
 
     if (reason === "user_stop") {
       setErrorMessage("");
@@ -248,6 +290,7 @@ export function PresentationMode() {
   }
 
   function cleanupRealtimeConnection() {
+    clearCaptionIdleCommit();
     realtimeConnectionRef.current?.close();
     realtimeConnectionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -279,10 +322,54 @@ export function PresentationMode() {
 
   function handleOutputLanguageChange(language: SupportedLanguage) {
     setOutputLanguage(language);
+    resetCaptionBuffer(language);
 
     if (!active) {
-      setCaption(createMockPresentationEvent(0, language, sessionId));
+      const mockCaption = createMockPresentationEvent(0, language, sessionId);
+      const displayState = captionBufferRef.current.replaceWithFinalText(
+        mockCaption.output.text,
+      );
+
+      setCaption(
+        createPresentationCaption(
+          displayState.currentBlock.text,
+          language,
+          sessionId,
+          true,
+        ),
+      );
     }
+  }
+
+  function scheduleCaptionIdleCommit(
+    language: SupportedLanguage,
+    currentSessionId: string,
+  ) {
+    clearCaptionIdleCommit();
+    captionIdleCommitTimeoutRef.current = window.setTimeout(() => {
+      const displayState = captionBufferRef.current.commitCurrentBlock();
+
+      setCaption(
+        createPresentationCaption(
+          displayState.currentBlock.text,
+          language,
+          currentSessionId,
+          true,
+        ),
+      );
+    }, CAPTION_IDLE_COMMIT_MS);
+  }
+
+  function clearCaptionIdleCommit() {
+    if (captionIdleCommitTimeoutRef.current !== null) {
+      window.clearTimeout(captionIdleCommitTimeoutRef.current);
+      captionIdleCommitTimeoutRef.current = null;
+    }
+  }
+
+  function resetCaptionBuffer(language: SupportedLanguage) {
+    clearCaptionIdleCommit();
+    captionBufferRef.current.setLanguage(language);
   }
 
   return (
@@ -323,6 +410,7 @@ export function PresentationMode() {
           language={outputLanguage}
           status={status}
           settings={settings}
+          fontSize={captionFontSize}
           onSettingsChange={setSettings}
         />
       </aside>
@@ -330,7 +418,7 @@ export function PresentationMode() {
       <CaptionPreview
         language={outputLanguage}
         text={caption.output.text}
-        fontSize={settings.fontSize}
+        fontSize={captionFontSize}
       />
     </section>
   );

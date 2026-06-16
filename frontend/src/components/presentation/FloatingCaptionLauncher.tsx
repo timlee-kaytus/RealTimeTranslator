@@ -20,6 +20,7 @@ type FloatingCaptionLauncherProps = {
   language: SupportedLanguage;
   status: RealtimeConnectionStatus;
   settings: FloatingCaptionSettings;
+  fontSize: number;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
 };
 
@@ -28,6 +29,7 @@ export function FloatingCaptionLauncher({
   language,
   status,
   settings,
+  fontSize,
   onSettingsChange,
 }: FloatingCaptionLauncherProps) {
   const support = useMemo(() => getPresentationSupport(), []);
@@ -48,7 +50,7 @@ export function FloatingCaptionLauncher({
       });
 
       nextWindow.document.open();
-      nextWindow.document.write(createFloatingCaptionMarkup(settings));
+      nextWindow.document.write(createFloatingCaptionMarkup(settings, fontSize));
       nextWindow.document.close();
       attachFloatingCaptionHandlers(nextWindow, onSettingsChange, () => {
         nextWindow.close();
@@ -91,9 +93,9 @@ export function FloatingCaptionLauncher({
     if (textElement) {
       textElement.textContent = text || "자막 대기 중";
       textElement.lang = language;
-      textElement.style.fontSize = `${settings.fontSize}px`;
+      textElement.style.fontSize = `${fontSize}px`;
     }
-  }, [language, pipWindow, settings.fontSize, status, text]);
+  }, [fontSize, language, pipWindow, status, text]);
 
   useEffect(() => {
     if (!pipWindow || pipWindow.closed) {
@@ -135,7 +137,10 @@ export function FloatingCaptionLauncher({
   );
 }
 
-function createFloatingCaptionMarkup(settings: FloatingCaptionSettings) {
+function createFloatingCaptionMarkup(
+  settings: FloatingCaptionSettings,
+  fontSize: number,
+) {
   return `<!doctype html>
 <html lang="ko">
   <head>
@@ -216,7 +221,7 @@ function createFloatingCaptionMarkup(settings: FloatingCaptionSettings) {
         margin: 0;
         overflow-wrap: anywhere;
         text-align: center;
-        font-size: ${settings.fontSize}px;
+        font-size: ${fontSize}px;
         font-weight: 950;
         line-height: 1.14;
       }

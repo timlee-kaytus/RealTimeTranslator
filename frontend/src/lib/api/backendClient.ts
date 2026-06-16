@@ -2,8 +2,10 @@ import type {
   CreateRealtimeSessionRequest,
   CreateRealtimeSessionResponse,
   EndRealtimeSessionRequest,
+  RealtimeSessionCredential,
   UsageEventRequest,
 } from "@/lib/types/realtime";
+import type { SupportedLanguage } from "@/lib/types/language";
 
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "";
 
@@ -81,21 +83,39 @@ export async function recordUsageEvent(
 function createMockSession(
   request: CreateRealtimeSessionRequest,
 ): CreateRealtimeSessionResponse {
-  const sessionId =
+  const parentSessionId =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? `mock-${crypto.randomUUID()}`
       : `mock-${Date.now()}`;
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const model =
+    request.mode === "presentation"
+      ? "mock-gpt-realtime-translate-presentation"
+      : "mock-gpt-realtime-translate-conversation";
+  const targetLanguages: SupportedLanguage[] =
+    request.targetLanguages.length > 0 ? request.targetLanguages : ["en"];
+  const sessions = targetLanguages.map((targetLanguage, index) => ({
+    sessionId:
+      targetLanguages.length === 1
+        ? parentSessionId
+        : `${parentSessionId}-${targetLanguage}-${index + 1}`,
+    targetLanguage,
+    provider: "mock" as const,
+    transport: "mock" as const,
+    clientSecret: "mock-client-secret",
+    expiresAt,
+    model,
+  }));
+  const primarySession = sessions[0];
+
+  if (!primarySession) {
+    throw new Error("Mock realtime session was not created.");
+  }
 
   return {
-    sessionId,
-    provider: "mock",
-    transport: "mock",
-    clientSecret: "mock-client-secret",
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    model:
-      request.mode === "presentation"
-        ? "mock-gpt-realtime-translate-presentation"
-        : "mock-gpt-realtime-translate-conversation",
+    ...primarySession,
+    sessionId: parentSessionId,
+    sessions,
   };
 }
 
@@ -104,28 +124,92 @@ function normalizeRealtimeSessionResponse(
   request: CreateRealtimeSessionRequest,
 ): CreateRealtimeSessionResponse {
   const record = isRecord(data) ? data : {};
+  const parentSessionId =
+    readString(record.sessionId) ??
+    readString(record.session_id) ??
+    readString(record.id);
+  const sessions = readRealtimeSessions(record, request, parentSessionId);
+  const primarySession = sessions[0];
+
+  if (!primarySession) {
+    throw new Error("Backend did not return realtime session credentials.");
+  }
+
+  return {
+    ...primarySession,
+    sessionId: parentSessionId ?? primarySession.sessionId,
+    sessions,
+  };
+}
+
+function readRealtimeSessions(
+  record: Record<string, unknown>,
+  request: CreateRealtimeSessionRequest,
+  parentSessionId: string | undefined,
+): RealtimeSessionCredential[] {
+  if (Array.isArray(record.sessions) && record.sessions.length > 0) {
+    return record.sessions.map((session, index) =>
+      normalizeRealtimeSessionCredential(
+        isRecord(session) ? session : {},
+        request,
+        index,
+        record,
+        parentSessionId,
+      ),
+    );
+  }
+
+  return [
+    normalizeRealtimeSessionCredential(
+      record,
+      request,
+      0,
+      record,
+      parentSessionId,
+    ),
+  ];
+}
+
+function normalizeRealtimeSessionCredential(
+  record: Record<string, unknown>,
+  request: CreateRealtimeSessionRequest,
+  index: number,
+  parentRecord: Record<string, unknown>,
+  parentSessionId: string | undefined,
+): RealtimeSessionCredential {
   const clientSecret = readClientSecret(record);
 
   if (!clientSecret) {
-    throw new Error("Backend did not return a realtime client secret.");
+    throw new Error("Backend did not return realtime session credentials.");
   }
+
+  const targetLanguage =
+    readTargetLanguage(record) ??
+    request.targetLanguages[index] ??
+    request.targetLanguages[0] ??
+    "en";
+  const fallbackSessionId = parentSessionId
+    ? `${parentSessionId}-${targetLanguage}-${index + 1}`
+    : `openai-${request.uiSessionId}-${targetLanguage}-${index + 1}`;
 
   return {
     sessionId:
       readString(record.sessionId) ??
       readString(record.session_id) ??
       readString(record.id) ??
-      `openai-${request.uiSessionId}`,
-    provider: readString(record.provider) === "mock" ? "mock" : "openai",
-    transport: readString(record.transport) === "mock" ? "mock" : "webrtc",
+      fallbackSessionId,
+    targetLanguage,
+    provider: readProvider(record) ?? readProvider(parentRecord) ?? "openai",
+    transport: readTransport(record) ?? readTransport(parentRecord) ?? "webrtc",
     clientSecret,
     expiresAt:
-      readIsoDate(record.expiresAt) ??
-      readIsoDate(record.expires_at) ??
-      readIsoDateFromNested(record.client_secret, "expires_at") ??
-      readIsoDateFromNested(record.clientSecret, "expires_at") ??
+      readCredentialExpiry(record) ??
+      readCredentialExpiry(parentRecord) ??
       new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    model: readString(record.model) ?? "gpt-realtime-translate",
+    model:
+      readString(record.model) ??
+      readString(parentRecord.model) ??
+      "gpt-realtime-translate",
   };
 }
 
@@ -137,6 +221,50 @@ function readClientSecret(record: Record<string, unknown>): string | undefined {
     readStringFromNested(record.clientSecret, "value") ??
     readStringFromNested(record.client_secret, "value")
   );
+}
+
+function readCredentialExpiry(
+  record: Record<string, unknown>,
+): string | undefined {
+  return (
+    readIsoDate(record.expiresAt) ??
+    readIsoDate(record.expires_at) ??
+    readIsoDateFromNested(record.client_secret, "expires_at") ??
+    readIsoDateFromNested(record.clientSecret, "expires_at")
+  );
+}
+
+function readProvider(
+  record: Record<string, unknown>,
+): RealtimeSessionCredential["provider"] | undefined {
+  const provider = readString(record.provider);
+
+  if (provider === "mock" || provider === "openai") {
+    return provider;
+  }
+}
+
+function readTransport(
+  record: Record<string, unknown>,
+): RealtimeSessionCredential["transport"] | undefined {
+  const transport = readString(record.transport);
+
+  if (transport === "mock" || transport === "webrtc") {
+    return transport;
+  }
+}
+
+function readTargetLanguage(
+  record: Record<string, unknown>,
+): SupportedLanguage | undefined {
+  const value =
+    readString(record.targetLanguage) ??
+    readString(record.target_language) ??
+    readString(record.outputLanguage) ??
+    readString(record.output_language) ??
+    readString(record.language);
+
+  return isSupportedLanguage(value) ? value : undefined;
 }
 
 function readString(value: unknown): string | undefined {
@@ -164,4 +292,8 @@ function readIsoDateFromNested(value: unknown, key: string): string | undefined 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isSupportedLanguage(value: unknown): value is SupportedLanguage {
+  return value === "ko" || value === "en" || value === "zh";
 }

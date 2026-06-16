@@ -54,13 +54,18 @@ export type CreateRealtimeSessionRequest = {
   uiSessionId: string;
 };
 
-export type CreateRealtimeSessionResponse = {
+export type RealtimeSessionCredential = {
   sessionId: string;
+  targetLanguage: SupportedLanguage;
   provider: "openai" | "mock";
   transport: "webrtc" | "mock";
   clientSecret: string;
   expiresAt: string;
   model: string;
+};
+
+export type CreateRealtimeSessionResponse = RealtimeSessionCredential & {
+  sessions: RealtimeSessionCredential[];
 };
 
 export type EndRealtimeSessionRequest = {

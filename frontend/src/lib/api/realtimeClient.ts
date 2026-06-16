@@ -34,6 +34,7 @@ export type RealtimeTranslationConnection = {
 export type ConnectRealtimeTranslationOptions = {
   sourceStream: MediaStream;
   clientSecret: string;
+  stopSourceTracksOnClose?: boolean;
   onStatusChange?: (status: RealtimeConnectionStatus) => void;
   onTranscriptDelta: (delta: string) => void;
   onTranscriptFinal?: (text: string) => void;
@@ -110,6 +111,7 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
 export async function connectOpenAIRealtimeTranslation({
   sourceStream,
   clientSecret,
+  stopSourceTracksOnClose = true,
   onStatusChange,
   onTranscriptDelta,
   onTranscriptFinal,
@@ -132,6 +134,7 @@ export async function connectOpenAIRealtimeTranslation({
     peerConnection,
     sourceStream,
     dataChannel,
+    stopSourceTracksOnClose,
   );
 
   try {
@@ -330,6 +333,7 @@ function createConnectionCleanup(
   peerConnection: RTCPeerConnection,
   sourceStream: MediaStream,
   dataChannel: RTCDataChannel,
+  stopSourceTracksOnClose: boolean,
 ) {
   let closed = false;
 
@@ -344,10 +348,13 @@ function createConnectionCleanup(
       dataChannel.close();
     }
 
-    peerConnection.getSenders().forEach((sender) => {
-      sender.track?.stop();
-    });
-    sourceStream.getTracks().forEach((track) => track.stop());
+    if (stopSourceTracksOnClose) {
+      peerConnection.getSenders().forEach((sender) => {
+        sender.track?.stop();
+      });
+      sourceStream.getTracks().forEach((track) => track.stop());
+    }
+
     peerConnection.close();
   };
 }
