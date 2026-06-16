@@ -655,6 +655,7 @@ export function ConversationMode() {
         />
         <MicToggleButton
           active={active || busy}
+          compact
           disabled={status === "reconnecting"}
           onClick={handleToggle}
         />

@@ -16,7 +16,7 @@ export function MicLevelMeter({
 
   return (
     <div
-      className={`inline-flex h-10 min-w-44 items-center gap-3 rounded-[8px] border px-3 ${
+      className={`inline-flex h-10 min-w-28 items-center gap-2 rounded-[8px] border px-3 ${
         disabled
           ? "border-zinc-200 bg-zinc-50 text-zinc-400"
           : speaking
@@ -24,13 +24,13 @@ export function MicLevelMeter({
             : "border-zinc-200 bg-white text-zinc-700"
       }`}
     >
-      <span className="shrink-0 text-xs font-bold">마이크 입력</span>
+      <span className="shrink-0 text-xs font-bold">마이크</span>
       <div
         aria-label="마이크 입력 레벨"
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={disabled ? 0 : percent}
-        className="h-2 min-w-20 flex-1 overflow-hidden rounded-full bg-zinc-200"
+        className="h-2 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200"
         role="meter"
       >
         <div
