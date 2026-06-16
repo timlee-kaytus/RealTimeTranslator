@@ -8,6 +8,7 @@ import type {
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "";
 
 export function shouldUseMockRealtime(): boolean {
+  // Phase 0 defaults to mock realtime until the OCI backend is connected.
   return process.env.NEXT_PUBLIC_USE_MOCK_REALTIME !== "false";
 }
 
@@ -97,4 +98,3 @@ function createMockSession(
         : "mock-gpt-realtime-translate-conversation",
   };
 }
-
