@@ -27,7 +27,6 @@ import { CaptionBuffer } from "@/lib/caption/captionBuffer";
 import {
   CAPTION_IDLE_COMMIT_MS,
   getCaptionDisplayFontSize,
-  getSecondaryCaptionFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import type { SupportedLanguage } from "@/lib/types/language";
@@ -106,20 +105,16 @@ export function ConversationMode() {
   const active =
     isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
   const busy = status === "connecting" || status === "reconnecting";
-  const topPrimaryFontSize = getCaptionDisplayFontSize({
+  const topCaptionFontSize = getCaptionDisplayFontSize({
     mode: "conversation",
     language: topLanguage,
     text: caption.top.text,
   });
-  const bottomPrimaryFontSize = getCaptionDisplayFontSize({
+  const bottomCaptionFontSize = getCaptionDisplayFontSize({
     mode: "conversation",
     language: bottomLanguage,
     text: caption.bottom.text,
   });
-  const topSecondaryFontSize =
-    getSecondaryCaptionFontSize(bottomPrimaryFontSize);
-  const bottomSecondaryFontSize =
-    getSecondaryCaptionFontSize(topPrimaryFontSize);
 
   const clearConversationActivityTimers = useCallback(() => {
     clearTimeoutRef(warmupTimeoutRef);
@@ -647,12 +642,9 @@ export function ConversationMode() {
   return (
     <section className="grid h-[calc(100dvh-76px)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 overflow-hidden p-3 md:p-4">
       <OpponentSubtitlePanel
-        primaryLanguage={topLanguage}
-        primaryText={caption.top.text}
-        primaryFontSize={topPrimaryFontSize}
-        secondaryLanguage={bottomLanguage}
-        secondaryText={caption.bottom.text}
-        secondaryFontSize={topSecondaryFontSize}
+        language={topLanguage}
+        text={caption.top.text}
+        fontSize={topCaptionFontSize}
         onLanguageChange={handleTopLanguageChange}
       />
 
@@ -676,12 +668,9 @@ export function ConversationMode() {
       </div>
 
       <UserSubtitlePanel
-        primaryLanguage={bottomLanguage}
-        primaryText={caption.bottom.text}
-        primaryFontSize={bottomPrimaryFontSize}
-        secondaryLanguage={topLanguage}
-        secondaryText={caption.top.text}
-        secondaryFontSize={bottomSecondaryFontSize}
+        language={bottomLanguage}
+        text={caption.bottom.text}
+        fontSize={bottomCaptionFontSize}
         onLanguageChange={handleBottomLanguageChange}
       />
     </section>
