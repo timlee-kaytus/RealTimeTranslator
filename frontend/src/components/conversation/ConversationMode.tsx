@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
-import { ConversationActivityHint } from "@/components/conversation/ConversationActivityHint";
 import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
 import { OpponentSubtitlePanel } from "@/components/conversation/OpponentSubtitlePanel";
+import { PushToTalkButton } from "@/components/conversation/PushToTalkButton";
 import { UserSubtitlePanel } from "@/components/conversation/UserSubtitlePanel";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { useMicrophoneLevel } from "@/hooks/useMicrophoneLevel";
@@ -59,6 +59,7 @@ export function ConversationMode() {
   const [status, setStatus] = useState<RealtimeConnectionStatus>("stopped");
   const [activityStatus, setActivityStatus] =
     useState<ConversationActivityStatus>("stopped");
+  const [pushToTalkActive, setPushToTalkActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
@@ -105,6 +106,8 @@ export function ConversationMode() {
   const sourceTranscriptLanguageRef = useRef<SupportedLanguage | null>(null);
   const sourceTranscriptRolesRef = useRef<ConversationSessionRole[]>([]);
   const sourceTranscriptTextRef = useRef("");
+  const pushToTalkActiveRef = useRef(false);
+  const pushToTalkStartingRef = useRef(false);
 
   const active =
     isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
@@ -321,6 +324,10 @@ export function ConversationMode() {
   }, [active, bottomLanguage, markActivityTranslating, sessionId, topLanguage]);
 
   async function handleToggle() {
+    if (pushToTalkActiveRef.current) {
+      return;
+    }
+
     if (active || busy) {
       await stopSession();
       return;
@@ -329,7 +336,60 @@ export function ConversationMode() {
     await startSession();
   }
 
-  async function startSession() {
+  async function handlePushToTalkStart() {
+    if (pushToTalkActiveRef.current || pushToTalkStartingRef.current) {
+      return;
+    }
+
+    if (status === "reconnecting") {
+      return;
+    }
+
+    pushToTalkActiveRef.current = true;
+    pushToTalkStartingRef.current = true;
+    setPushToTalkActive(true);
+
+    try {
+      if (active || busy) {
+        await stopSession();
+      }
+
+      if (!pushToTalkActiveRef.current) {
+        return;
+      }
+
+      const started = await startSession();
+
+      if (!pushToTalkActiveRef.current && started) {
+        await stopSession();
+      }
+    } finally {
+      pushToTalkStartingRef.current = false;
+
+      if (!pushToTalkActiveRef.current) {
+        setPushToTalkActive(false);
+      }
+    }
+  }
+
+  async function handlePushToTalkEnd() {
+    if (!pushToTalkActiveRef.current) {
+      return;
+    }
+
+    pushToTalkActiveRef.current = false;
+    setPushToTalkActive(false);
+
+    if (pushToTalkStartingRef.current) {
+      return;
+    }
+
+    if (active || busy) {
+      await stopSession();
+    }
+  }
+
+  async function startSession(): Promise<boolean> {
     setStatus("connecting");
     setActivityStatus("connecting");
     setErrorMessage("");
@@ -378,7 +438,7 @@ export function ConversationMode() {
         await recordSessionUsage(activeSessionIdsRef.current, "session_started");
         setStatus("listening");
         startActivityWarmup();
-        return;
+        return true;
       }
 
       if (!mediaStream) {
@@ -415,6 +475,7 @@ export function ConversationMode() {
       await recordSessionUsage(activeSessionIdsRef.current, "session_started");
       setStatus("listening");
       startActivityWarmup();
+      return true;
     } catch (error) {
       const sessionIds = activeSessionIdsRef.current;
 
@@ -432,6 +493,7 @@ export function ConversationMode() {
       setStatus("error");
       setActivityStatus("error");
       setErrorMessage(getRealtimeUserMessage(error));
+      return false;
     }
   }
 
@@ -797,12 +859,14 @@ export function ConversationMode() {
         <MicToggleButton
           active={active || busy}
           compact
-          disabled={status === "reconnecting"}
+          disabled={status === "reconnecting" || pushToTalkActive}
           onClick={handleToggle}
         />
-        <ConversationActivityHint
-          micLevel={micLevel}
-          status={activityStatus}
+        <PushToTalkButton
+          active={pushToTalkActive}
+          disabled={status === "reconnecting"}
+          onPressEnd={handlePushToTalkEnd}
+          onPressStart={handlePushToTalkStart}
         />
         <ErrorBanner message={errorMessage} />
       </div>
