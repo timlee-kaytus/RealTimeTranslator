@@ -19,7 +19,7 @@ export function UserSubtitlePanel({
 }: UserSubtitlePanelProps) {
   return (
     <SubtitlePanel
-      title="내 언어"
+      title="내언어(我的语言)"
       Icon={UserRound}
       accentClassName="text-cyan-700"
       className="user-panel"

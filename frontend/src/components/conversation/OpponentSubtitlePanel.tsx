@@ -19,7 +19,7 @@ export function OpponentSubtitlePanel({
 }: OpponentSubtitlePanelProps) {
   return (
     <SubtitlePanel
-      title="상대방 언어"
+      title="상대방 언어(对方语言)"
       Icon={UsersRound}
       accentClassName="text-emerald-700"
       className="opponent-panel"
