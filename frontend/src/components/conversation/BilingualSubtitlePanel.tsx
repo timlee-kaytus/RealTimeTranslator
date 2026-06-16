@@ -48,14 +48,14 @@ export function BilingualSubtitlePanel({
         </div>
         <LanguageSelect
           id={languageSelectId}
-          label="표시 언어"
+          label="표시언어(显示语言)"
           value={primary.language}
           onChange={onPrimaryLanguageChange}
         />
       </div>
 
-      <div className="flex h-full min-h-0 flex-1 flex-col justify-center gap-4 overflow-hidden px-2 py-5 text-center">
-        <section className="min-h-0 overflow-hidden">
+      <div className="grid h-full min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-center gap-3 overflow-hidden px-2 py-5 text-center has-[section+section]:grid-rows-[minmax(0,1fr)_minmax(0,0.52fr)]">
+        <section className="min-h-0 overflow-hidden self-center">
           <div className="mb-2 text-xs font-black text-zinc-500">
             {LANGUAGE_LABELS[primary.language]}
           </div>
@@ -71,7 +71,7 @@ export function BilingualSubtitlePanel({
         </section>
 
         {!secondaryEmpty && (
-          <section className="min-h-0 overflow-hidden border-t border-zinc-100 pt-4">
+          <section className="min-h-0 overflow-hidden border-t border-zinc-100 pt-3">
             <div className="mb-2 text-xs font-black text-zinc-400">
               {LANGUAGE_LABELS[secondary.language]}
             </div>

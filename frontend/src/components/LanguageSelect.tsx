@@ -1,4 +1,7 @@
-import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from "@/lib/types/language";
+import {
+  LANGUAGE_SELECT_LABELS,
+  SUPPORTED_LANGUAGES,
+} from "@/lib/types/language";
 import type { SupportedLanguage } from "@/lib/types/language";
 
 type LanguageSelectProps = {
@@ -25,11 +28,10 @@ export function LanguageSelect({
       >
         {SUPPORTED_LANGUAGES.map((language) => (
           <option key={language} value={language}>
-            {LANGUAGE_LABELS[language]}
+            {LANGUAGE_SELECT_LABELS[language]}
           </option>
         ))}
       </select>
     </label>
   );
 }
-

@@ -50,7 +50,7 @@ export function PresentationMode() {
   const [outputLanguage, setOutputLanguage] = useState<SupportedLanguage>(
     initialOutputLanguage,
   );
-  const [status, setStatus] = useState<RealtimeConnectionStatus>("idle");
+  const [status, setStatus] = useState<RealtimeConnectionStatus>("stopped");
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<PresentationCaptionEvent>(() =>

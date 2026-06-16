@@ -48,7 +48,7 @@ export function ConversationMode() {
     useState<SupportedLanguage>(initialTopLanguage);
   const [bottomLanguage, setBottomLanguage] =
     useState<SupportedLanguage>(initialBottomLanguage);
-  const [status, setStatus] = useState<RealtimeConnectionStatus>("idle");
+  const [status, setStatus] = useState<RealtimeConnectionStatus>("stopped");
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
@@ -477,7 +477,7 @@ export function ConversationMode() {
   }
 
   return (
-    <section className="grid min-h-[calc(100dvh-76px)] grid-rows-[1fr_auto_1fr] gap-3 p-3 md:p-4">
+    <section className="grid h-[calc(100dvh-76px)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 overflow-hidden p-3 md:p-4">
       <OpponentSubtitlePanel
         primaryLanguage={topLanguage}
         primaryText={caption.top.text}
