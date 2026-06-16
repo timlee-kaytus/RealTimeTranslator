@@ -9,6 +9,18 @@ export type RealtimeConnectionStatus =
   | "error"
   | "stopped";
 
+export type ConversationActivityStatus =
+  | "idle"
+  | "connecting"
+  | "warming_up"
+  | "ready"
+  | "listening"
+  | "speech_detected"
+  | "translating"
+  | "reconnecting"
+  | "error"
+  | "stopped";
+
 export type TranslationMode = "conversation" | "presentation";
 
 export type CaptionEventType =

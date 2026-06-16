@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
 import { StatusPill } from "@/components/StatusPill";
+import { ConversationActivityHint } from "@/components/conversation/ConversationActivityHint";
+import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
 import { OpponentSubtitlePanel } from "@/components/conversation/OpponentSubtitlePanel";
 import { UserSubtitlePanel } from "@/components/conversation/UserSubtitlePanel";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { useMicrophoneLevel } from "@/hooks/useMicrophoneLevel";
 import {
   createRealtimeSession,
   endRealtimeSession,
@@ -29,6 +32,7 @@ import {
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type {
+  ConversationActivityStatus,
   ConversationCaptionEvent,
   RealtimeConnectionStatus,
   RealtimeSessionCredential,
@@ -36,6 +40,11 @@ import type {
 
 const initialTopLanguage: SupportedLanguage = "zh";
 const initialBottomLanguage: SupportedLanguage = "ko";
+const WARMUP_MS = 1000;
+const READY_VISIBLE_MS = 800;
+const MOCK_FIRST_CAPTION_DELAY_MS = WARMUP_MS + READY_VISIBLE_MS + 200;
+const SPEECH_DETECTED_HOLD_MS = 200;
+const TRANSLATING_IDLE_RESET_MS = 1200;
 
 type ConversationSessionRole = "top" | "bottom";
 type ConversationSessionStatuses = Record<
@@ -49,6 +58,8 @@ export function ConversationMode() {
   const [bottomLanguage, setBottomLanguage] =
     useState<SupportedLanguage>(initialBottomLanguage);
   const [status, setStatus] = useState<RealtimeConnectionStatus>("stopped");
+  const [activityStatus, setActivityStatus] =
+    useState<ConversationActivityStatus>("stopped");
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
@@ -60,6 +71,12 @@ export function ConversationMode() {
       bottomText: "",
     }),
   );
+  const {
+    level: micLevel,
+    speaking: isSpeaking,
+    start: startMicrophoneLevel,
+    stop: stopMicrophoneLevel,
+  } = useMicrophoneLevel();
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const realtimeConnectionsRef = useRef<
     Partial<Record<ConversationSessionRole, RealtimeTranslationConnection>>
@@ -81,8 +98,13 @@ export function ConversationMode() {
     createInitialSessionStatuses(),
   );
   const activeSessionIdsRef = useRef<string[]>([]);
+  const warmupTimeoutRef = useRef<number | null>(null);
+  const readyTimeoutRef = useRef<number | null>(null);
+  const speechDetectedTimeoutRef = useRef<number | null>(null);
+  const translatingResetTimeoutRef = useRef<number | null>(null);
 
-  const active = status === "listening" || status === "translating";
+  const active =
+    isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
   const busy = status === "connecting" || status === "reconnecting";
   const topPrimaryFontSize = getCaptionDisplayFontSize({
     mode: "conversation",
@@ -99,16 +121,89 @@ export function ConversationMode() {
   const bottomSecondaryFontSize =
     getSecondaryCaptionFontSize(topPrimaryFontSize);
 
+  const clearConversationActivityTimers = useCallback(() => {
+    clearTimeoutRef(warmupTimeoutRef);
+    clearTimeoutRef(readyTimeoutRef);
+    clearTimeoutRef(speechDetectedTimeoutRef);
+    clearTimeoutRef(translatingResetTimeoutRef);
+  }, []);
+
+  const startActivityWarmup = useCallback(() => {
+    clearConversationActivityTimers();
+    setActivityStatus("warming_up");
+
+    warmupTimeoutRef.current = window.setTimeout(() => {
+      warmupTimeoutRef.current = null;
+      setActivityStatus("ready");
+
+      readyTimeoutRef.current = window.setTimeout(() => {
+        readyTimeoutRef.current = null;
+        setActivityStatus((currentStatus) =>
+          currentStatus === "ready" ? "listening" : currentStatus,
+        );
+      }, READY_VISIBLE_MS);
+    }, WARMUP_MS);
+  }, [clearConversationActivityTimers]);
+
+  const markActivityTranslating = useCallback(() => {
+    clearTimeoutRef(readyTimeoutRef);
+    clearTimeoutRef(speechDetectedTimeoutRef);
+    clearTimeoutRef(translatingResetTimeoutRef);
+    setActivityStatus("translating");
+
+    translatingResetTimeoutRef.current = window.setTimeout(() => {
+      translatingResetTimeoutRef.current = null;
+      setActivityStatus((currentStatus) =>
+        currentStatus === "translating" ? "listening" : currentStatus,
+      );
+    }, TRANSLATING_IDLE_RESET_MS);
+  }, []);
+
+  const returnActivityToListening = useCallback(() => {
+    clearTimeoutRef(translatingResetTimeoutRef);
+    setActivityStatus((currentStatus) =>
+      currentStatus === "translating" ||
+      currentStatus === "speech_detected" ||
+      currentStatus === "ready"
+        ? "listening"
+        : currentStatus,
+    );
+  }, []);
+
+  const syncActivityWithConnectionStatus = useCallback(
+    (nextStatus: RealtimeConnectionStatus) => {
+      if (
+        nextStatus === "connecting" ||
+        nextStatus === "reconnecting" ||
+        nextStatus === "error" ||
+        nextStatus === "stopped"
+      ) {
+        clearConversationActivityTimers();
+        setActivityStatus(nextStatus);
+        return;
+      }
+
+      if (nextStatus === "listening") {
+        setActivityStatus((currentStatus) =>
+          currentStatus === "reconnecting" ? "listening" : currentStatus,
+        );
+      }
+    },
+    [clearConversationActivityTimers],
+  );
+
   useEffect(() => {
     const captionBuffers = captionBuffersRef.current;
 
     return () => {
+      clearConversationActivityTimers();
       Object.values(realtimeConnectionsRef.current).forEach((connection) => {
         connection?.close();
       });
       realtimeConnectionsRef.current = {};
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
+      stopMicrophoneLevel();
       Object.values(captionIdleCommitTimeoutsRef.current).forEach(
         (timeoutId) => window.clearTimeout(timeoutId),
       );
@@ -116,7 +211,46 @@ export function ConversationMode() {
       captionBuffers.top.clear();
       captionBuffers.bottom.clear();
     };
-  }, []);
+  }, [clearConversationActivityTimers, stopMicrophoneLevel]);
+
+  useEffect(() => {
+    if (!canUpdateSpeechActivity(status, activityStatus)) {
+      clearTimeoutRef(speechDetectedTimeoutRef);
+      return;
+    }
+
+    if (!isSpeaking) {
+      clearTimeoutRef(speechDetectedTimeoutRef);
+
+      if (activityStatus !== "speech_detected") {
+        return;
+      }
+
+      speechDetectedTimeoutRef.current = window.setTimeout(() => {
+        speechDetectedTimeoutRef.current = null;
+        setActivityStatus((currentStatus) =>
+          currentStatus === "speech_detected" ? "listening" : currentStatus,
+        );
+      }, 0);
+      return;
+    }
+
+    if (
+      activityStatus === "speech_detected" ||
+      speechDetectedTimeoutRef.current !== null
+    ) {
+      return;
+    }
+
+    speechDetectedTimeoutRef.current = window.setTimeout(() => {
+      speechDetectedTimeoutRef.current = null;
+      setActivityStatus((currentStatus) =>
+        canShowSpeechDetected(currentStatus)
+          ? "speech_detected"
+          : currentStatus,
+      );
+    }, SPEECH_DETECTED_HOLD_MS);
+  }, [activityStatus, isSpeaking, status]);
 
   useEffect(() => {
     if (!active || !shouldUseMockRealtime()) {
@@ -126,7 +260,19 @@ export function ConversationMode() {
     let index = 0;
 
     const emitMockCaption = () => {
-      setStatus(index % 2 === 0 ? "listening" : "translating");
+      const nextStatus = index % 2 === 0 ? "listening" : "translating";
+      setStatus(nextStatus);
+
+      if (nextStatus === "translating") {
+        markActivityTranslating();
+      } else {
+        setActivityStatus((currentStatus) =>
+          currentStatus === "stopped" || currentStatus === "error"
+            ? currentStatus
+            : "listening",
+        );
+      }
+
       const mockCaption = createMockConversationEvent(
         index,
         topLanguage,
@@ -161,14 +307,17 @@ export function ConversationMode() {
       index += 1;
     };
 
-    const firstTimeoutId = window.setTimeout(emitMockCaption, 0);
+    const firstTimeoutId = window.setTimeout(
+      emitMockCaption,
+      MOCK_FIRST_CAPTION_DELAY_MS,
+    );
     const intervalId = window.setInterval(emitMockCaption, 2200);
 
     return () => {
       window.clearTimeout(firstTimeoutId);
       window.clearInterval(intervalId);
     };
-  }, [active, bottomLanguage, sessionId, topLanguage]);
+  }, [active, bottomLanguage, markActivityTranslating, sessionId, topLanguage]);
 
   async function handleToggle() {
     if (active || busy) {
@@ -181,7 +330,10 @@ export function ConversationMode() {
 
   async function startSession() {
     setStatus("connecting");
+    setActivityStatus("connecting");
     setErrorMessage("");
+    clearConversationActivityTimers();
+    stopMicrophoneLevel();
     resetRealtimeState("connecting");
 
     try {
@@ -197,6 +349,7 @@ export function ConversationMode() {
 
       if (mediaStream) {
         mediaStreamRef.current = mediaStream;
+        startMicrophoneLevel(mediaStream);
       }
 
       const session = await createRealtimeSession({
@@ -223,6 +376,7 @@ export function ConversationMode() {
       if (usingMockRealtime) {
         await recordSessionUsage(activeSessionIdsRef.current, "session_started");
         setStatus("listening");
+        startActivityWarmup();
         return;
       }
 
@@ -259,6 +413,7 @@ export function ConversationMode() {
 
       await recordSessionUsage(activeSessionIdsRef.current, "session_started");
       setStatus("listening");
+      startActivityWarmup();
     } catch (error) {
       const sessionIds = activeSessionIdsRef.current;
 
@@ -274,6 +429,7 @@ export function ConversationMode() {
       activeSessionIdsRef.current = [];
       resetCaptionBuffers(topLanguage, bottomLanguage);
       setStatus("error");
+      setActivityStatus("error");
       setErrorMessage(getRealtimeUserMessage(error));
     }
   }
@@ -282,6 +438,8 @@ export function ConversationMode() {
     const sessionIds = activeSessionIdsRef.current;
 
     setStatus("stopped");
+    setActivityStatus("stopped");
+    clearConversationActivityTimers();
     cleanupRealtimeConnections();
     resetCaptionBuffers(topLanguage, bottomLanguage);
     setCaption(
@@ -307,6 +465,7 @@ export function ConversationMode() {
       await recordSessionUsage(sessionIds, "session_stopped");
     } catch {
       setStatus("error");
+      setActivityStatus("error");
       setErrorMessage(getRealtimeUserMessage("network"));
     }
   }
@@ -335,6 +494,7 @@ export function ConversationMode() {
         handleSessionStatusChange(role, nextStatus);
       },
       onTranscriptDelta: (delta) => {
+        markActivityTranslating();
         const displayState = captionBuffersRef.current[role].appendDelta(delta);
 
         updateConversationCaption(
@@ -345,6 +505,8 @@ export function ConversationMode() {
         scheduleCaptionIdleCommit(role);
       },
       onTranscriptFinal: (text) => {
+        returnActivityToListening();
+
         if (!text) {
           return;
         }
@@ -356,6 +518,8 @@ export function ConversationMode() {
         updateConversationCaption(role, displayState.currentBlock.text, true);
       },
       onError: (message) => {
+        clearConversationActivityTimers();
+        setActivityStatus("error");
         setErrorMessage(message);
       },
     });
@@ -376,7 +540,9 @@ export function ConversationMode() {
       ...sessionStatusesRef.current,
       [role]: nextStatus,
     };
-    setStatus(deriveConversationStatus(sessionStatusesRef.current));
+    const derivedStatus = deriveConversationStatus(sessionStatusesRef.current);
+    setStatus(derivedStatus);
+    syncActivityWithConnectionStatus(derivedStatus);
   }
 
   function updateConversationCaption(
@@ -403,6 +569,8 @@ export function ConversationMode() {
     realtimeConnectionsRef.current = {};
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     mediaStreamRef.current = null;
+    stopMicrophoneLevel();
+    clearConversationActivityTimers();
     clearAllCaptionIdleCommits();
     sessionStatusesRef.current = {
       top: "stopped",
@@ -490,10 +658,19 @@ export function ConversationMode() {
 
       <div className="flex flex-wrap items-center justify-center gap-3 rounded-[8px] border border-zinc-200 bg-white px-3 py-3 shadow-sm">
         <StatusPill status={status} />
+        <MicLevelMeter
+          disabled={!active && !busy}
+          level={micLevel}
+          speaking={isSpeaking}
+        />
         <MicToggleButton
           active={active || busy}
           disabled={status === "reconnecting"}
           onClick={handleToggle}
+        />
+        <ConversationActivityHint
+          micLevel={micLevel}
+          status={activityStatus}
         />
         <ErrorBanner message={errorMessage} />
       </div>
@@ -565,6 +742,51 @@ function deriveConversationStatus(
   }
 
   return "stopped";
+}
+
+type TimeoutRef = {
+  current: number | null;
+};
+
+function clearTimeoutRef(timeoutRef: TimeoutRef) {
+  if (timeoutRef.current === null) {
+    return;
+  }
+
+  window.clearTimeout(timeoutRef.current);
+  timeoutRef.current = null;
+}
+
+function isActiveConnectionStatus(status: RealtimeConnectionStatus): boolean {
+  return status === "listening" || status === "translating";
+}
+
+function isActiveActivityStatus(status: ConversationActivityStatus): boolean {
+  return (
+    status === "warming_up" ||
+    status === "ready" ||
+    status === "listening" ||
+    status === "speech_detected" ||
+    status === "translating"
+  );
+}
+
+function canUpdateSpeechActivity(
+  connectionStatus: RealtimeConnectionStatus,
+  activityStatus: ConversationActivityStatus,
+): boolean {
+  return (
+    connectionStatus === "listening" &&
+    (activityStatus === "ready" ||
+      activityStatus === "listening" ||
+      activityStatus === "speech_detected")
+  );
+}
+
+function canShowSpeechDetected(
+  activityStatus: ConversationActivityStatus,
+): boolean {
+  return activityStatus === "ready" || activityStatus === "listening";
 }
 
 function uniqueSessionIds(sessionIds: string[]): string[] {
