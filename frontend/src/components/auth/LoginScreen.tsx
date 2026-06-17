@@ -5,9 +5,45 @@ import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!password) {
+      setErrorMessage("비밀번호를 입력해 주세요.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        setErrorMessage(
+          response.status === 500
+            ? "로그인 설정을 확인해 주세요."
+            : "비밀번호가 올바르지 않습니다.",
+        );
+        return;
+      }
+
+      window.location.href = "/";
+    } catch {
+      setErrorMessage("로그인 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -30,15 +66,19 @@ export function LoginScreen() {
             <LockKeyhole aria-hidden className="size-6 shrink-0 text-[#9a9fb2]" />
             <input
               type={showPassword ? "text" : "password"}
+              value={password}
+              disabled={loading}
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="비밀번호 입력"
               aria-label="비밀번호 입력"
-              className="min-w-0 flex-1 border-0 bg-transparent text-lg font-semibold text-[#1b1d25] outline-none placeholder:text-[#a1a6b8]"
+              className="min-w-0 flex-1 border-0 bg-transparent text-lg font-semibold text-[#1b1d25] outline-none placeholder:text-[#a1a6b8] disabled:cursor-not-allowed"
             />
             <button
               type="button"
+              disabled={loading}
               aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
               onClick={() => setShowPassword((current) => !current)}
-              className="grid size-11 shrink-0 place-items-center rounded-full text-[#9a9fb2] transition hover:bg-[#f3f0fa] hover:text-[#613bff] focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.18)]"
+              className="grid size-11 shrink-0 place-items-center rounded-full text-[#9a9fb2] transition hover:bg-[#f3f0fa] hover:text-[#613bff] focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {showPassword ? (
                 <EyeOff aria-hidden className="size-6" />
@@ -48,11 +88,21 @@ export function LoginScreen() {
             </button>
           </div>
 
+          {errorMessage && (
+            <p
+              role="alert"
+              className="mt-4 text-sm font-bold text-[#dc2626]"
+            >
+              {errorMessage}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="mt-9 h-[82px] w-full rounded-[18px] bg-[linear-gradient(90deg,#613bff_0%,#5a35f0_100%)] text-[22px] font-bold text-white shadow-[0_18px_32px_rgba(97,59,255,0.22)] transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.28)] active:translate-y-px"
+            disabled={loading}
+            className="mt-9 h-[82px] w-full rounded-[18px] bg-[linear-gradient(90deg,#613bff_0%,#5a35f0_100%)] text-[22px] font-bold text-white shadow-[0_18px_32px_rgba(97,59,255,0.22)] transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
-            로그인
+            {loading ? "확인 중..." : "로그인"}
           </button>
         </form>
       </section>
