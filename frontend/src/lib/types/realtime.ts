@@ -55,6 +55,10 @@ export type PresentationCaptionEvent = {
     language: SupportedLanguage;
     text: string;
   };
+  secondaryOutput?: {
+    language: SupportedLanguage;
+    text: string;
+  };
   isFinal: boolean;
   timestamp: string;
 };

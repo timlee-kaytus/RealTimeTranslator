@@ -11,7 +11,7 @@ const activityMessages: Record<ConversationActivityStatus, string> = {
   idle: "대기 중",
   connecting: "연결 중입니다.",
   warming_up: "통역 준비 중입니다. 잠시 후 말해 주세요.",
-  ready: "준비 완료. 이제 말해도 됩니다.",
+  ready: "준비 완료. 이제 말하셔도 됩니다.",
   listening: "듣는 중입니다.",
   speech_detected: "말이 감지되었습니다.",
   translating: "번역 중입니다.",

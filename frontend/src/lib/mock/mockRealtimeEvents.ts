@@ -110,6 +110,7 @@ export function createMockPresentationEvent(
   index: number,
   outputLanguage: SupportedLanguage,
   sessionId = "mock-session",
+  secondaryOutputLanguage?: SupportedLanguage,
 ): PresentationCaptionEvent {
   const phrase = presentationPhrases[index % presentationPhrases.length];
   const isFinal = index % 3 === 2;
@@ -123,8 +124,13 @@ export function createMockPresentationEvent(
       language: outputLanguage,
       text: phrase.text[outputLanguage],
     },
+    secondaryOutput: secondaryOutputLanguage
+      ? {
+          language: secondaryOutputLanguage,
+          text: phrase.text[secondaryOutputLanguage],
+        }
+      : undefined,
     isFinal,
     timestamp: new Date().toISOString(),
   };
 }
-

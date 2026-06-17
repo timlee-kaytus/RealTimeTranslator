@@ -14,16 +14,22 @@ import { getPresentationSupport } from "@/lib/browser/featureDetection";
 type FloatingCaptionLauncherProps = {
   text: string;
   language: SupportedLanguage;
+  secondaryText?: string;
+  secondaryLanguage?: SupportedLanguage | null;
   settings: FloatingCaptionSettings;
   fontSize: number;
+  secondaryFontSize?: number;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
 };
 
 export function FloatingCaptionLauncher({
   text,
   language,
+  secondaryText = "",
+  secondaryLanguage = null,
   settings,
   fontSize,
+  secondaryFontSize,
   onSettingsChange,
 }: FloatingCaptionLauncherProps) {
   const support = useMemo(() => getPresentationSupport(), []);
@@ -45,7 +51,11 @@ export function FloatingCaptionLauncher({
 
       nextWindow.document.open();
       nextWindow.document.write(
-        createFloatingCaptionMarkup(fontSize, settings.backgroundOpacity),
+        createFloatingCaptionMarkup(
+          fontSize,
+          secondaryFontSize ?? fontSize,
+          settings.backgroundOpacity,
+        ),
       );
       nextWindow.document.close();
       setPipWindow(nextWindow);
@@ -65,6 +75,9 @@ export function FloatingCaptionLauncher({
 
     const document = pipWindow.document;
     const textElement = document.getElementById("caption-text");
+    const secondaryTextElement = document.getElementById(
+      "caption-text-secondary",
+    );
 
     if (textElement) {
       textElement.textContent = text || "자막 대기 중";
@@ -72,11 +85,28 @@ export function FloatingCaptionLauncher({
       textElement.style.fontSize = `${fontSize}px`;
     }
 
+    if (secondaryTextElement) {
+      secondaryTextElement.textContent = secondaryText || "자막 대기 중";
+      secondaryTextElement.lang = secondaryLanguage ?? "";
+      secondaryTextElement.style.display =
+        secondaryLanguage === null ? "none" : "-webkit-box";
+      secondaryTextElement.style.fontSize = `${secondaryFontSize ?? fontSize}px`;
+    }
+
     applyFloatingCaptionBackground(
       document,
       settings.backgroundOpacity,
     );
-  }, [fontSize, language, pipWindow, settings.backgroundOpacity, text]);
+  }, [
+    fontSize,
+    language,
+    pipWindow,
+    secondaryFontSize,
+    secondaryLanguage,
+    secondaryText,
+    settings.backgroundOpacity,
+    text,
+  ]);
 
   useEffect(() => {
     if (!pipWindow || pipWindow.closed) {
@@ -130,6 +160,7 @@ export function FloatingCaptionLauncher({
 
 function createFloatingCaptionMarkup(
   fontSize: number,
+  secondaryFontSize: number,
   backgroundOpacity: number,
 ) {
   const backgroundColor = createFloatingBackgroundColor(backgroundOpacity);
@@ -156,6 +187,8 @@ function createFloatingCaptionMarkup(
       }
       .caption-area {
         display: flex;
+        flex-direction: column;
+        gap: 10px;
         width: 100%;
         height: 100%;
         align-items: center;
@@ -174,11 +207,28 @@ function createFloatingCaptionMarkup(
           0 2px 8px rgba(0, 0, 0, 0.95),
           0 0 18px rgba(0, 0, 0, 0.8);
       }
+      #caption-text-secondary {
+        display: none;
+        max-width: 100%;
+        margin: 0;
+        overflow-wrap: anywhere;
+        text-align: center;
+        font-size: ${secondaryFontSize}px;
+        font-weight: 950;
+        line-height: 1.14;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        text-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.95),
+          0 0 18px rgba(0, 0, 0, 0.8);
+      }
     </style>
   </head>
   <body>
     <main class="caption-area">
       <p id="caption-text">자막 대기 중</p>
+      <p id="caption-text-secondary"></p>
     </main>
   </body>
 </html>`;
