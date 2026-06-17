@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { PictureInPicture2 } from "lucide-react";
 
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -104,6 +105,16 @@ export function FloatingCaptionLauncher({
     <div className="space-y-3 rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
       {!support.supported && <BrowserSupportNotice />}
       <ErrorBanner message={errorMessage} />
+      <div className="overflow-hidden rounded-[8px] border border-zinc-200 bg-zinc-50">
+        <Image
+          src="/images/presentation-caption-illustration.png"
+          alt="발표 화면 위에 자막이 표시되는 일러스트"
+          width={960}
+          height={459}
+          sizes="(min-width: 1024px) 360px, calc(100vw - 32px)"
+          className="h-auto w-full"
+        />
+      </div>
       <button
         type="button"
         disabled={!support.supported}
