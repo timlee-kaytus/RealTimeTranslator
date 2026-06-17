@@ -1,24 +1,13 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Minus, Plus, Type } from "lucide-react";
+import { Blend, Minus, Plus, Type } from "lucide-react";
 
-import {
-  FLOATING_CAPTION_PRESETS,
-  type FloatingCaptionSettings,
-  type FloatingPreset,
-} from "@/lib/types/settings";
+import type { FloatingCaptionSettings } from "@/lib/types/settings";
 
 type CaptionSizeControlsProps = {
   settings: FloatingCaptionSettings;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
-};
-
-const presetLabels: Record<FloatingPreset, string> = {
-  small: "작게",
-  medium: "보통",
-  large: "크게",
-  bottom_bar: "하단바",
 };
 
 export function CaptionSizeControls({
@@ -59,35 +48,6 @@ export function CaptionSizeControls({
         자막 크기
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        {(Object.keys(FLOATING_CAPTION_PRESETS) as FloatingPreset[]).map(
-          (preset) => {
-            const selected = settings.preset === preset;
-
-            return (
-              <button
-                key={preset}
-                type="button"
-                aria-pressed={selected}
-                onClick={() =>
-                  onSettingsChange((current) => ({
-                    ...FLOATING_CAPTION_PRESETS[preset],
-                    backgroundOpacity: current.backgroundOpacity,
-                  }))
-                }
-                className={`h-10 rounded-[8px] border px-2 text-sm font-bold transition ${
-                  selected
-                    ? "border-zinc-950 bg-zinc-950 text-white"
-                    : "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-500"
-                }`}
-              >
-                {presetLabels[preset]}
-              </button>
-            );
-          },
-        )}
-      </div>
-
       <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
         <button
           type="button"
@@ -122,6 +82,16 @@ export function CaptionSizeControls({
         </button>
       </div>
 
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-black text-zinc-800">
+          <Blend aria-hidden className="size-4 text-emerald-700" />
+          배경 투명도
+        </div>
+        <span className="text-sm font-black tabular-nums text-zinc-950">
+          {transparencyPercent}%
+        </span>
+      </div>
+
       <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
         <button
           type="button"
@@ -131,28 +101,18 @@ export function CaptionSizeControls({
         >
           <Minus aria-hidden className="size-5" />
         </button>
-        <div className="rounded-[8px] border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <span className="text-xs font-bold text-zinc-500">
-              배경 투명도
-            </span>
-            <span className="text-sm font-black tabular-nums text-zinc-950">
-              {transparencyPercent}%
-            </span>
-          </div>
-          <input
-            aria-label="배경 투명도"
-            type="range"
-            min={15}
-            max={85}
-            step={1}
-            value={transparencyPercent}
-            onChange={(event) =>
-              setTransparencyPercent(Number(event.target.value))
-            }
-            className="w-full accent-emerald-700"
-          />
-        </div>
+        <input
+          aria-label="배경 투명도"
+          type="range"
+          min={15}
+          max={85}
+          step={1}
+          value={transparencyPercent}
+          onChange={(event) =>
+            setTransparencyPercent(Number(event.target.value))
+          }
+          className="w-full accent-emerald-700"
+        />
         <button
           type="button"
           aria-label="투명도 높임"
@@ -161,13 +121,6 @@ export function CaptionSizeControls({
         >
           <Plus aria-hidden className="size-5" />
         </button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold text-zinc-500">
-        <span>{settings.width}px</span>
-        <span>{settings.height}px</span>
-        <span>{settings.fontSize}px</span>
-        <span>{transparencyPercent}%</span>
       </div>
     </div>
   );
