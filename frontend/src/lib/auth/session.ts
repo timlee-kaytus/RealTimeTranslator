@@ -79,8 +79,8 @@ async function createSignature(payload: string): Promise<string> {
 function getAuthSecret(): string {
   const secret = process.env.RTT_AUTH_SECRET;
 
-  if (!secret || secret.length < 32) {
-    throw new Error("RTT_AUTH_SECRET must be at least 32 characters.");
+  if (!secret) {
+    throw new Error("RTT_AUTH_SECRET is required.");
   }
 
   return secret;
