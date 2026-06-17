@@ -40,7 +40,7 @@ import type {
 } from "@/lib/types/realtime";
 import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
-const initialOutputLanguage: SupportedLanguage = "en";
+const initialOutputLanguage: SupportedLanguage = "ko";
 const maxSessionSeconds = 15 * 60;
 
 export function PresentationMode() {
