@@ -41,6 +41,13 @@ export function CaptionSizeControls({
     }));
   }
 
+  function setTransparencyPercent(percent: number) {
+    onSettingsChange((current) => ({
+      ...current,
+      backgroundOpacity: clampBackgroundOpacity(1 - percent / 100),
+    }));
+  }
+
   const transparencyPercent = Math.round(
     (1 - settings.backgroundOpacity) * 100,
   );
@@ -124,11 +131,27 @@ export function CaptionSizeControls({
         >
           <Minus aria-hidden className="size-5" />
         </button>
-        <div className="rounded-[8px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-center">
-          <div className="text-xs font-bold text-zinc-500">배경 투명도</div>
-          <div className="text-sm font-black text-zinc-950">
-            {transparencyPercent}%
+        <div className="rounded-[8px] border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span className="text-xs font-bold text-zinc-500">
+              배경 투명도
+            </span>
+            <span className="text-sm font-black tabular-nums text-zinc-950">
+              {transparencyPercent}%
+            </span>
           </div>
+          <input
+            aria-label="배경 투명도"
+            type="range"
+            min={15}
+            max={85}
+            step={1}
+            value={transparencyPercent}
+            onChange={(event) =>
+              setTransparencyPercent(Number(event.target.value))
+            }
+            className="w-full accent-emerald-700"
+          />
         </div>
         <button
           type="button"
