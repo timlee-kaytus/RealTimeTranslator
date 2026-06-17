@@ -381,7 +381,6 @@ export function PresentationMode() {
         <FloatingCaptionLauncher
           text={caption.output.text}
           language={outputLanguage}
-          status={status}
           settings={settings}
           fontSize={captionFontSize}
           onSettingsChange={setSettings}

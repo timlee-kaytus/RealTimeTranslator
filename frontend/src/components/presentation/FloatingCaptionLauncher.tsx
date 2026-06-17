@@ -6,19 +6,13 @@ import { PictureInPicture2 } from "lucide-react";
 
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNotice";
-import { LANGUAGE_LABELS } from "@/lib/types/language";
 import type { SupportedLanguage } from "@/lib/types/language";
-import type { RealtimeConnectionStatus } from "@/lib/types/realtime";
-import {
-  FLOATING_CAPTION_PRESETS,
-  type FloatingCaptionSettings,
-} from "@/lib/types/settings";
+import type { FloatingCaptionSettings } from "@/lib/types/settings";
 import { getPresentationSupport } from "@/lib/browser/featureDetection";
 
 type FloatingCaptionLauncherProps = {
   text: string;
   language: SupportedLanguage;
-  status: RealtimeConnectionStatus;
   settings: FloatingCaptionSettings;
   fontSize: number;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
@@ -27,7 +21,6 @@ type FloatingCaptionLauncherProps = {
 export function FloatingCaptionLauncher({
   text,
   language,
-  status,
   settings,
   fontSize,
   onSettingsChange,
@@ -50,12 +43,8 @@ export function FloatingCaptionLauncher({
       });
 
       nextWindow.document.open();
-      nextWindow.document.write(createFloatingCaptionMarkup(settings, fontSize));
+      nextWindow.document.write(createFloatingCaptionMarkup(fontSize));
       nextWindow.document.close();
-      attachFloatingCaptionHandlers(nextWindow, onSettingsChange, () => {
-        nextWindow.close();
-        setPipWindow(null);
-      });
       setPipWindow(nextWindow);
     } catch (error) {
       setErrorMessage(
@@ -72,30 +61,14 @@ export function FloatingCaptionLauncher({
     }
 
     const document = pipWindow.document;
-    const titleElement = document.getElementById("caption-title");
-    const languageElement = document.getElementById("caption-language");
-    const statusElement = document.getElementById("caption-status");
     const textElement = document.getElementById("caption-text");
-
-    if (titleElement) {
-      titleElement.textContent = "실시간 번역 자막";
-    }
-
-    if (languageElement) {
-      languageElement.textContent = LANGUAGE_LABELS[language];
-    }
-
-    if (statusElement) {
-      statusElement.textContent = getFloatingStatusLabel(status);
-      statusElement.dataset.status = status;
-    }
 
     if (textElement) {
       textElement.textContent = text || "자막 대기 중";
       textElement.lang = language;
       textElement.style.fontSize = `${fontSize}px`;
     }
-  }, [fontSize, language, pipWindow, status, text]);
+  }, [fontSize, language, pipWindow, text]);
 
   useEffect(() => {
     if (!pipWindow || pipWindow.closed) {
@@ -137,10 +110,7 @@ export function FloatingCaptionLauncher({
   );
 }
 
-function createFloatingCaptionMarkup(
-  settings: FloatingCaptionSettings,
-  fontSize: number,
-) {
+function createFloatingCaptionMarkup(fontSize: number) {
   return `<!doctype html>
 <html lang="ko">
   <head>
@@ -159,62 +129,15 @@ function createFloatingCaptionMarkup(
       }
       body {
         display: flex;
-        flex-direction: column;
         overflow: hidden;
-      }
-      .chrome {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        min-height: 44px;
-        padding: 8px 10px;
-        border-bottom: 1px solid #27272a;
-        background: #18181b;
-      }
-      .title {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 13px;
-        font-weight: 800;
-      }
-      .meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: #d4d4d8;
-        font-size: 12px;
-        font-weight: 800;
-      }
-      .controls {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-      button {
-        width: 34px;
-        height: 30px;
-        border: 1px solid #3f3f46;
-        border-radius: 7px;
-        background: #27272a;
-        color: #ffffff;
-        cursor: pointer;
-        font: inherit;
-        font-size: 12px;
-        font-weight: 900;
-      }
-      button:hover {
-        background: #3f3f46;
       }
       .caption-area {
         display: flex;
-        min-height: 0;
-        flex: 1;
+        width: 100%;
+        height: 100%;
         align-items: center;
         justify-content: center;
-        padding: 18px 22px;
+        padding: 16px 22px;
       }
       #caption-text {
         max-width: 100%;
@@ -228,66 +151,9 @@ function createFloatingCaptionMarkup(
     </style>
   </head>
   <body>
-    <div class="chrome">
-      <div>
-        <div class="title" id="caption-title">실시간 번역 자막</div>
-        <div class="meta">
-          <span id="caption-language">영어</span>
-          <span id="caption-status" data-status="idle">대기</span>
-        </div>
-      </div>
-      <div class="controls">
-        <button type="button" id="font-decrease" aria-label="글자 작게">A-</button>
-        <button type="button" id="font-increase" aria-label="글자 크게">A+</button>
-        <button type="button" id="preset-bottom" aria-label="하단바 크기">⛶</button>
-        <button type="button" id="caption-close" aria-label="닫기">X</button>
-      </div>
-    </div>
     <main class="caption-area">
       <p id="caption-text">자막 대기 중</p>
     </main>
   </body>
 </html>`;
-}
-
-function getFloatingStatusLabel(status: RealtimeConnectionStatus): string {
-  const labels: Record<RealtimeConnectionStatus, string> = {
-    idle: "대기",
-    connecting: "연결 중",
-    listening: "듣는 중",
-    translating: "번역 중",
-    reconnecting: "재연결 중",
-    error: "오류",
-    stopped: "중지됨",
-  };
-
-  return labels[status];
-}
-
-function attachFloatingCaptionHandlers(
-  pipWindow: Window,
-  onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>,
-  onClose: () => void,
-) {
-  const document = pipWindow.document;
-
-  document.getElementById("font-decrease")?.addEventListener("click", () => {
-    onSettingsChange((current) => ({
-      ...current,
-      fontSize: Math.max(24, current.fontSize - 4),
-    }));
-  });
-
-  document.getElementById("font-increase")?.addEventListener("click", () => {
-    onSettingsChange((current) => ({
-      ...current,
-      fontSize: Math.min(88, current.fontSize + 4),
-    }));
-  });
-
-  document.getElementById("preset-bottom")?.addEventListener("click", () => {
-    onSettingsChange(FLOATING_CAPTION_PRESETS.bottom_bar);
-  });
-
-  document.getElementById("caption-close")?.addEventListener("click", onClose);
 }
