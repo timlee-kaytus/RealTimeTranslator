@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 
 export function LoginScreen() {
@@ -48,7 +49,7 @@ export function LoginScreen() {
 
   return (
     <main className="grid min-h-dvh grid-cols-1 bg-[#fafafc] text-[#1b1d25] lg:grid-cols-2">
-      <section className="relative min-h-[560px] overflow-hidden bg-[linear-gradient(180deg,#f4f1fb_0%,#f0edf8_100%)] px-8 py-10 sm:px-12 lg:min-h-dvh lg:px-16 lg:py-14">
+      <section className="relative min-h-[560px] overflow-hidden bg-[linear-gradient(145deg,#f8fbff_0%,#eef7f6_46%,#f4f1ff_100%)] px-8 py-10 sm:px-12 lg:min-h-dvh lg:px-16 lg:py-14">
         <RTTLogo />
         <LoginHeroVisual />
       </section>
@@ -130,120 +131,24 @@ function RTTLogo() {
 
 function LoginHeroVisual() {
   return (
-    <div className="relative mx-auto flex h-full min-h-[520px] max-w-[760px] items-center justify-center pt-16 lg:min-h-[calc(100dvh-112px)]">
-      <div className="absolute inset-x-4 bottom-10 h-20 rounded-[100%] bg-[radial-gradient(circle,rgba(141,116,255,0.13)_0%,rgba(141,116,255,0)_68%)]" />
-      <SpeechBubble className="left-[8%] top-[20%]" tail="left">
-        안녕하세요
-      </SpeechBubble>
-      <SpeechBubble className="right-[12%] top-[22%]" tail="right">
-        你好
-      </SpeechBubble>
-
-      <div className="absolute left-[19%] top-[52%] h-[2px] w-[25%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(141,116,255,0),rgba(141,116,255,0.52),rgba(141,116,255,0))]" />
-      <div className="absolute right-[19%] top-[52%] h-[2px] w-[25%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(141,116,255,0),rgba(141,116,255,0.52),rgba(141,116,255,0))]" />
-
-      <div className="absolute left-[24%] top-[49%] flex gap-2 opacity-75">
-        <span className="h-3 w-1 rounded-full bg-[#9d8cff]" />
-        <span className="h-6 w-1 rounded-full bg-[#8d74ff]" />
-        <span className="h-4 w-1 rounded-full bg-[#c8bfff]" />
-        <span className="h-7 w-1 rounded-full bg-[#8d74ff]" />
-        <span className="h-3 w-1 rounded-full bg-[#9d8cff]" />
+    <div className="relative mx-auto flex h-full min-h-[520px] max-w-[780px] items-center justify-center pt-20 lg:min-h-[calc(100dvh-112px)]">
+      <div className="absolute inset-x-2 bottom-[9%] h-28 rounded-[100%] bg-[radial-gradient(circle,rgba(28,107,118,0.18)_0%,rgba(28,107,118,0)_68%)]" />
+      <div className="relative w-full max-w-[720px]">
+        <div className="absolute -inset-4 rounded-[36px] bg-white/58 shadow-[0_34px_86px_rgba(23,32,52,0.14)] backdrop-blur-xl" />
+        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-[28px] border border-white/70 bg-white/56 shadow-[0_20px_48px_rgba(63,86,116,0.12)] backdrop-blur-md" />
+        <div className="absolute -bottom-7 left-8 h-14 w-[34%] rounded-full bg-[#0f2f3d]/10 blur-xl" />
+        <div className="relative overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_28px_70px_rgba(23,32,52,0.16)]">
+          <Image
+            src="/images/login-ai-translation-hero.png"
+            alt="AI 실시간 번역 대화를 표현한 로그인 일러스트"
+            width={1400}
+            height={788}
+            priority
+            sizes="(min-width: 1024px) 46vw, 92vw"
+            className="h-auto w-full"
+          />
+        </div>
       </div>
-      <div className="absolute right-[24%] top-[49%] flex gap-2 opacity-75">
-        <span className="h-4 w-1 rounded-full bg-[#9d8cff]" />
-        <span className="h-7 w-1 rounded-full bg-[#8d74ff]" />
-        <span className="h-3 w-1 rounded-full bg-[#c8bfff]" />
-        <span className="h-6 w-1 rounded-full bg-[#8d74ff]" />
-        <span className="h-4 w-1 rounded-full bg-[#9d8cff]" />
-      </div>
-
-      <div className="absolute left-[49%] top-[50%] z-20 grid size-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#613bff] text-2xl font-black text-white shadow-[0_0_0_18px_rgba(141,116,255,0.12),0_0_60px_rgba(97,59,255,0.38)] sm:size-28">
-        AI
-      </div>
-      <span className="absolute left-[44%] top-[38%] size-2 rounded-full bg-[#8d74ff] opacity-70" />
-      <span className="absolute left-[56%] top-[41%] size-1.5 rounded-full bg-[#c8bfff] opacity-80" />
-      <span className="absolute left-[52%] top-[63%] size-2 rounded-full bg-[#9d8cff] opacity-60" />
-
-      <IllustratedPerson variant="woman" className="left-[7%] bottom-[12%]" />
-      <IllustratedPerson variant="man" className="right-[8%] bottom-[12%]" />
-    </div>
-  );
-}
-
-type SpeechBubbleProps = {
-  children: string;
-  className: string;
-  tail: "left" | "right";
-};
-
-function SpeechBubble({ children, className, tail }: SpeechBubbleProps) {
-  return (
-    <div
-      className={`absolute z-20 rounded-[24px] bg-white px-7 py-4 text-xl font-black text-[#613bff] shadow-[0_14px_36px_rgba(28,30,40,0.08)] ${className}`}
-    >
-      {children}
-      <span
-        aria-hidden
-        className={`absolute bottom-[-8px] size-5 rotate-45 bg-white ${
-          tail === "left" ? "left-9" : "right-9"
-        }`}
-      />
-    </div>
-  );
-}
-
-type IllustratedPersonProps = {
-  variant: "woman" | "man";
-  className: string;
-};
-
-function IllustratedPerson({ variant, className }: IllustratedPersonProps) {
-  const isWoman = variant === "woman";
-
-  return (
-    <div className={`absolute z-10 h-[300px] w-[210px] sm:h-[360px] sm:w-[250px] ${className}`}>
-      <div
-        className={`absolute left-1/2 top-6 size-[96px] -translate-x-1/2 rounded-full bg-[#ffd7bf] shadow-[inset_0_-10px_0_rgba(200,110,80,0.08)] sm:size-[112px] ${
-          isWoman ? "" : "top-8"
-        }`}
-      />
-      <div
-        className={`absolute left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#1f2738] ${
-          isWoman
-            ? "top-0 h-[130px] w-[124px] rounded-b-[54px]"
-            : "top-3 h-[66px] w-[124px] rounded-b-[26px]"
-        }`}
-      />
-      {isWoman && (
-        <div className="absolute left-5 top-20 h-[148px] w-11 rounded-full bg-[#1f2738]" />
-      )}
-      <div
-        className={`absolute left-1/2 top-[132px] h-[150px] w-[154px] -translate-x-1/2 rounded-t-[44px] sm:top-[154px] sm:h-[178px] sm:w-[182px] ${
-          isWoman ? "bg-[#fffdf8]" : "bg-[#dcd6ff]"
-        }`}
-      />
-      <div
-        className={`absolute left-1/2 top-[128px] h-[158px] w-[180px] -translate-x-1/2 rounded-t-[52px] sm:top-[150px] sm:h-[190px] sm:w-[214px] ${
-          isWoman
-            ? "bg-[linear-gradient(135deg,#ffffff_0%,#f4eee8_100%)]"
-            : "bg-[linear-gradient(135deg,#e9e5ff_0%,#cfc6ff_100%)]"
-        }`}
-      />
-      <div
-        className={`absolute top-[166px] h-16 w-24 rounded-full bg-[#ffd7bf] sm:top-[196px] ${
-          isWoman
-            ? "right-0 rotate-[24deg]"
-            : "left-[-8px] -rotate-[22deg]"
-        }`}
-      />
-      <div
-        className={`absolute top-[174px] h-14 w-20 rounded-full sm:top-[206px] ${
-          isWoman
-            ? "right-[-12px] rotate-[24deg] bg-[#f8f4ef]"
-            : "left-[-20px] -rotate-[22deg] bg-[#d7d0ff]"
-        }`}
-      />
-      <div className="absolute bottom-0 left-1/2 h-24 w-[210px] -translate-x-1/2 bg-[linear-gradient(180deg,rgba(244,241,251,0)_0%,#f2eff9_72%)]" />
     </div>
   );
 }
