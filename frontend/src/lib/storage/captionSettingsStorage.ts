@@ -1,5 +1,7 @@
 import {
   DEFAULT_FLOATING_CAPTION_SETTINGS,
+  FLOATING_CAPTION_FONT_SIZE_MAX,
+  FLOATING_CAPTION_FONT_SIZE_MIN,
   type FloatingCaptionSettings,
 } from "@/lib/types/settings";
 
@@ -29,7 +31,7 @@ export function loadFloatingCaptionSettings(): FloatingCaptionSettings {
         preset: parsedValue.preset ?? DEFAULT_FLOATING_CAPTION_SETTINGS.preset,
         width: parsedValue.width,
         height: parsedValue.height,
-        fontSize: parsedValue.fontSize,
+        fontSize: clampFontSize(parsedValue.fontSize),
         backgroundOpacity:
           typeof parsedValue.backgroundOpacity === "number"
             ? clampBackgroundOpacity(parsedValue.backgroundOpacity)
@@ -58,4 +60,11 @@ export function saveFloatingCaptionSettings(
 
 function clampBackgroundOpacity(value: number): number {
   return Math.min(0.85, Math.max(0.15, value));
+}
+
+function clampFontSize(value: number): number {
+  return Math.min(
+    FLOATING_CAPTION_FONT_SIZE_MAX,
+    Math.max(FLOATING_CAPTION_FONT_SIZE_MIN, value),
+  );
 }

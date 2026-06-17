@@ -3,7 +3,11 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Blend, Minus, Plus, Type } from "lucide-react";
 
-import type { FloatingCaptionSettings } from "@/lib/types/settings";
+import {
+  FLOATING_CAPTION_FONT_SIZE_MAX,
+  FLOATING_CAPTION_FONT_SIZE_MIN,
+  type FloatingCaptionSettings,
+} from "@/lib/types/settings";
 
 type CaptionSizeControlsProps = {
   settings: FloatingCaptionSettings;
@@ -60,10 +64,10 @@ export function CaptionSizeControls({
         <input
           aria-label="글자 크기"
           type="range"
-          min={24}
-          max={88}
+          min={FLOATING_CAPTION_FONT_SIZE_MIN}
+          max={FLOATING_CAPTION_FONT_SIZE_MAX}
           step={2}
-          value={settings.fontSize}
+          value={clampFontSize(settings.fontSize)}
           onChange={(event) =>
             onSettingsChange((current) => ({
               ...current,
@@ -127,7 +131,10 @@ export function CaptionSizeControls({
 }
 
 function clampFontSize(value: number) {
-  return Math.min(88, Math.max(24, value));
+  return Math.min(
+    FLOATING_CAPTION_FONT_SIZE_MAX,
+    Math.max(FLOATING_CAPTION_FONT_SIZE_MIN, value),
+  );
 }
 
 function clampBackgroundOpacity(value: number) {
