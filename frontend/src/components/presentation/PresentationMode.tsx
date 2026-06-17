@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { LanguageSelect } from "@/components/LanguageSelect";
 import { MicToggleButton } from "@/components/MicToggleButton";
-import { StatusPill } from "@/components/StatusPill";
 import { CaptionSizeControls } from "@/components/presentation/CaptionSizeControls";
 import { FloatingCaptionLauncher } from "@/components/presentation/FloatingCaptionLauncher";
-import { PresentationSessionTimer } from "@/components/presentation/PresentationSessionTimer";
 import { CaptionPreview } from "@/components/shared/CaptionPreview";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import {
@@ -24,7 +22,6 @@ import {
   type RealtimeTranslationConnection,
 } from "@/lib/api/realtimeClient";
 import { createUiSessionId } from "@/lib/browser/sessionId";
-import { nowEpochMilliseconds } from "@/lib/browser/time";
 import { CaptionBuffer } from "@/lib/caption/captionBuffer";
 import {
   CAPTION_IDLE_COMMIT_MS,
@@ -45,7 +42,6 @@ import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
 const initialOutputLanguage: SupportedLanguage = "en";
 const maxSessionSeconds = 15 * 60;
-const sessionWarningSeconds = 60;
 
 export function PresentationMode() {
   const [outputLanguage, setOutputLanguage] = useState<SupportedLanguage>(
@@ -58,8 +54,6 @@ export function PresentationMode() {
     createMockPresentationEvent(0, initialOutputLanguage),
   );
   const [settings, setSettings] = useState(DEFAULT_FLOATING_CAPTION_SETTINGS);
-  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const realtimeConnectionRef = useRef<RealtimeTranslationConnection | null>(
     null,
@@ -76,7 +70,6 @@ export function PresentationMode() {
 
   const active = status === "listening" || status === "translating";
   const busy = status === "connecting" || status === "reconnecting";
-  const sessionTimerRunning = sessionStartedAt !== null && (active || busy);
   const captionFontSize = getCaptionDisplayFontSize({
     mode: "presentation",
     language: outputLanguage,
@@ -107,22 +100,6 @@ export function PresentationMode() {
   useEffect(() => {
     saveFloatingCaptionSettings(settings);
   }, [settings]);
-
-  useEffect(() => {
-    if (sessionStartedAt === null || !sessionTimerRunning) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      const nextElapsedSeconds = Math.min(
-        maxSessionSeconds,
-        Math.floor((nowEpochMilliseconds() - sessionStartedAt) / 1000),
-      );
-      setElapsedSeconds(nextElapsedSeconds);
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [sessionStartedAt, sessionTimerRunning]);
 
   useEffect(() => {
     if (!active || !shouldUseMockRealtime()) {
@@ -301,10 +278,7 @@ export function PresentationMode() {
 
   function startSessionTimer() {
     clearSessionExpireTimeout();
-    setElapsedSeconds(0);
-    setSessionStartedAt(nowEpochMilliseconds());
     sessionExpireTimeoutRef.current = window.setTimeout(() => {
-      setElapsedSeconds(maxSessionSeconds);
       setErrorMessage(getSessionExpiredMessage());
       void stopSession("session_expired");
     }, maxSessionSeconds * 1000);
@@ -312,7 +286,6 @@ export function PresentationMode() {
 
   function stopSessionTimer() {
     clearSessionExpireTimeout();
-    setSessionStartedAt(null);
   }
 
   function clearSessionExpireTimeout() {
@@ -375,33 +348,31 @@ export function PresentationMode() {
   }
 
   return (
-    <section className="grid min-h-[calc(100dvh-76px)] gap-4 p-3 md:p-4 lg:grid-cols-[360px_1fr]">
-      <aside className="space-y-4">
-        <div className="space-y-4 rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <StatusPill status={status} />
-            <MicToggleButton
-              active={active || busy}
-              disabled={status === "reconnecting"}
-              onClick={handleToggle}
-            />
-          </div>
+    <section className="grid min-h-[calc(100dvh-76px)] content-start gap-4 p-3 md:p-4">
+      <div className="rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <LanguageSelect
             id="presentation-output-language"
             label="출력 언어"
             value={outputLanguage}
             onChange={handleOutputLanguageChange}
           />
-          <ErrorBanner message={errorMessage} />
+          <MicToggleButton
+            active={active || busy}
+            disabled={status === "reconnecting"}
+            onClick={handleToggle}
+          />
         </div>
+        <ErrorBanner message={errorMessage} />
+      </div>
 
-        <PresentationSessionTimer
-          elapsedSeconds={elapsedSeconds}
-          maxSeconds={maxSessionSeconds}
-          warningSeconds={sessionWarningSeconds}
-          running={sessionTimerRunning}
-        />
+      <CaptionPreview
+        language={outputLanguage}
+        text={caption.output.text}
+        fontSize={captionFontSize}
+      />
 
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <CaptionSizeControls
           settings={settings}
           onSettingsChange={setSettings}
@@ -415,13 +386,7 @@ export function PresentationMode() {
           fontSize={captionFontSize}
           onSettingsChange={setSettings}
         />
-      </aside>
-
-      <CaptionPreview
-        language={outputLanguage}
-        text={caption.output.text}
-        fontSize={captionFontSize}
-      />
+      </div>
     </section>
   );
 }
