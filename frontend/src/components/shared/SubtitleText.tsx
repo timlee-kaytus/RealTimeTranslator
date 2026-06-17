@@ -1,3 +1,4 @@
+import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import type { SupportedLanguage } from "@/lib/types/language";
 
 type SubtitleTextProps = {
@@ -7,13 +8,15 @@ type SubtitleTextProps = {
 };
 
 export function SubtitleText({ text, language, fontSize }: SubtitleTextProps) {
+  const displayText = text ? formatCaptionParagraphSpacing(text) : "";
+
   return (
     <p
       lang={language}
       className="subtitle-text max-w-4xl text-center font-black leading-tight text-zinc-950"
       style={{ fontSize }}
     >
-      {text || "자막 대기 중"}
+      {displayText || "자막 대기 중"}
     </p>
   );
 }

@@ -13,6 +13,7 @@ type SplitCaptionTextOptions = {
 };
 
 const terminalPunctuation = new Set([".", "?", "!", "。", "？", "！"]);
+const CAPTION_PARAGRAPH_SEPARATOR = "\u00a0\u00a0";
 const softBreakPunctuation = new Set([
   ",",
   ";",
@@ -47,6 +48,15 @@ export function hasTerminalPunctuation(text: string): boolean {
   const lastCharacter = Array.from(text.trim()).at(-1);
 
   return lastCharacter ? terminalPunctuation.has(lastCharacter) : false;
+}
+
+export function formatCaptionParagraphSpacing(text: string): string {
+  return text
+    .replace(/([!?。？！])\s*(?=\S)/gu, `$1${CAPTION_PARAGRAPH_SEPARATOR}`)
+    .replace(
+      /\.\s*(?=[A-Z가-힣\u4E00-\u9FFF"“‘'([<{])/gu,
+      `.${CAPTION_PARAGRAPH_SEPARATOR}`,
+    );
 }
 
 function splitByTerminalPunctuation(text: string): string[] {

@@ -7,6 +7,7 @@ import { PictureInPicture2 } from "lucide-react";
 
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNotice";
+import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type { FloatingCaptionSettings } from "@/lib/types/settings";
 import { getPresentationSupport } from "@/lib/browser/featureDetection";
@@ -80,13 +81,17 @@ export function FloatingCaptionLauncher({
     );
 
     if (textElement) {
-      textElement.textContent = text || "자막 대기 중";
+      textElement.textContent = text
+        ? formatCaptionParagraphSpacing(text)
+        : "자막 대기 중";
       textElement.lang = language;
       textElement.style.fontSize = `${fontSize}px`;
     }
 
     if (secondaryTextElement) {
-      secondaryTextElement.textContent = secondaryText || "자막 대기 중";
+      secondaryTextElement.textContent = secondaryText
+        ? formatCaptionParagraphSpacing(secondaryText)
+        : "자막 대기 중";
       secondaryTextElement.lang = secondaryLanguage ?? "";
       secondaryTextElement.style.display =
         secondaryLanguage === null ? "none" : "-webkit-box";
@@ -152,7 +157,9 @@ export function FloatingCaptionLauncher({
         className="rtt-outline-button inline-flex h-12 w-full items-center justify-center gap-2 px-4 text-sm disabled:cursor-not-allowed disabled:border-[#dedee5] disabled:bg-[#c4c6d1] disabled:text-white"
       >
         <PictureInPicture2 aria-hidden className="size-5" />
-        {pipWindow && !pipWindow.closed ? "플로팅 갱신" : "플로팅 시작"}
+        {pipWindow && !pipWindow.closed
+          ? "플로팅 갱신"
+          : "플로팅 시작(开启悬浮窗)"}
       </button>
     </div>
   );

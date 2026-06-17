@@ -46,6 +46,15 @@ export type ConversationCaptionEvent = {
   timestamp: string;
 };
 
+export type ConversationTurn = {
+  id: string;
+  sessionId: string;
+  detectedSourceLanguage?: SupportedLanguage | "unknown";
+  texts: Partial<Record<SupportedLanguage, string>>;
+  updatedAt: string;
+  isFinal: boolean;
+};
+
 export type PresentationCaptionEvent = {
   type: CaptionEventType;
   mode: "presentation";

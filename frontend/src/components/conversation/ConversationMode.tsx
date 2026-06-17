@@ -26,12 +26,14 @@ import {
   CAPTION_IDLE_COMMIT_MS,
   getCaptionDisplayFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
+import { ConversationTurnBuffer } from "@/lib/conversation/conversationTurnBuffer";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type {
   ConversationActivityStatus,
   ConversationCaptionEvent,
+  ConversationTurn,
   RealtimeConnectionStatus,
   RealtimeSessionCredential,
 } from "@/lib/types/realtime";
@@ -60,6 +62,7 @@ export function ConversationMode() {
     useState<ConversationActivityStatus>("stopped");
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
+  const sessionIdRef = useRef("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
     createConversationCaption({
       sessionId: "mock-session",
@@ -89,9 +92,8 @@ export function ConversationMode() {
       language: initialBottomLanguage,
     }),
   });
-  const captionIdleCommitTimeoutsRef = useRef<
-    Partial<Record<ConversationSessionRole, number>>
-  >({});
+  const conversationTurnBufferRef = useRef(new ConversationTurnBuffer());
+  const turnIdleCommitTimeoutRef = useRef<number | null>(null);
   const sessionStatusesRef = useRef<ConversationSessionStatuses>(
     createInitialSessionStatuses(),
   );
@@ -114,6 +116,27 @@ export function ConversationMode() {
     language: bottomLanguage,
     text: caption.bottom.text,
   });
+
+  const setConversationCaptionFromTurn = useCallback(
+    (turn: ConversationTurn | null, isFinal = false) => {
+      if (!turn) {
+        return;
+      }
+
+      setCaption(
+        createConversationCaption({
+          sessionId: turn.sessionId,
+          topLanguage,
+          bottomLanguage,
+          topText: turn.texts[topLanguage] ?? "",
+          bottomText: turn.texts[bottomLanguage] ?? "",
+          isFinal: isFinal || turn.isFinal,
+          detectedLanguage: turn.detectedSourceLanguage,
+        }),
+      );
+    },
+    [bottomLanguage, topLanguage],
+  );
 
   const clearConversationActivityTimers = useCallback(() => {
     clearTimeoutRef(warmupTimeoutRef);
@@ -188,6 +211,7 @@ export function ConversationMode() {
 
   useEffect(() => {
     const captionBuffers = captionBuffersRef.current;
+    const conversationTurnBuffer = conversationTurnBufferRef.current;
 
     return () => {
       clearConversationActivityTimers();
@@ -198,10 +222,8 @@ export function ConversationMode() {
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
       stopMicrophoneLevel();
-      Object.values(captionIdleCommitTimeoutsRef.current).forEach(
-        (timeoutId) => window.clearTimeout(timeoutId),
-      );
-      captionIdleCommitTimeoutsRef.current = {};
+      clearTimeoutRef(turnIdleCommitTimeoutRef);
+      conversationTurnBuffer.clear();
       captionBuffers.top.clear();
       captionBuffers.bottom.clear();
     };
@@ -284,20 +306,26 @@ export function ConversationMode() {
       const finalBottomDisplayState =
         captionBuffersRef.current.bottom.commitCurrentBlock();
 
-      setCaption(
-        createConversationCaption({
-          sessionId,
-          topLanguage,
-          bottomLanguage,
-          topText:
-            finalTopDisplayState.currentBlock.text ||
-            topDisplayState.currentBlock.text,
-          bottomText:
-            finalBottomDisplayState.currentBlock.text ||
-            bottomDisplayState.currentBlock.text,
-          isFinal: true,
-        }),
-      );
+      conversationTurnBufferRef.current.startOrUpdateTurn({
+        sessionId: sessionIdRef.current,
+        language: topLanguage,
+        text:
+          finalTopDisplayState.currentBlock.text ||
+          topDisplayState.currentBlock.text,
+        detectedSourceLanguage: mockCaption.detectedLanguage,
+      });
+      const bottomTurn = conversationTurnBufferRef.current.startOrUpdateTurn({
+        sessionId: sessionIdRef.current,
+        language: bottomLanguage,
+        text:
+          finalBottomDisplayState.currentBlock.text ||
+          bottomDisplayState.currentBlock.text,
+        detectedSourceLanguage: mockCaption.detectedLanguage,
+      });
+      const finalTurn =
+        conversationTurnBufferRef.current.commitCurrentTurn() ?? bottomTurn;
+
+      setConversationCaptionFromTurn(finalTurn, true);
       index += 1;
     };
 
@@ -311,7 +339,14 @@ export function ConversationMode() {
       window.clearTimeout(firstTimeoutId);
       window.clearInterval(intervalId);
     };
-  }, [active, bottomLanguage, markActivityTranslating, sessionId, topLanguage]);
+  }, [
+    active,
+    bottomLanguage,
+    markActivityTranslating,
+    sessionId,
+    setConversationCaptionFromTurn,
+    topLanguage,
+  ]);
 
   async function handleToggle() {
     if (active || busy) {
@@ -354,7 +389,9 @@ export function ConversationMode() {
         translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
       });
 
+      sessionIdRef.current = session.sessionId;
       setSessionId(session.sessionId);
+      conversationTurnBufferRef.current.clear();
       activeSessionIdsRef.current = session.sessions.map(
         (realtimeSession) => realtimeSession.sessionId,
       );
@@ -439,6 +476,7 @@ export function ConversationMode() {
     clearConversationActivityTimers();
     cleanupRealtimeConnections();
     resetCaptionBuffers(topLanguage, bottomLanguage);
+    conversationTurnBufferRef.current.clear();
     setCaption(
       createConversationCaption({
         sessionId,
@@ -469,6 +507,7 @@ export function ConversationMode() {
 
   function resetRealtimeState(nextStatus: RealtimeConnectionStatus) {
     resetCaptionBuffers(topLanguage, bottomLanguage);
+    conversationTurnBufferRef.current.clear();
     sessionStatusesRef.current = {
       top: nextStatus,
       bottom: nextStatus,
@@ -494,12 +533,12 @@ export function ConversationMode() {
         markActivityTranslating();
         const displayState = captionBuffersRef.current[role].appendDelta(delta);
 
-        updateConversationCaption(
-          role,
+        updateConversationTurn(
+          getConversationLanguageForRole(role),
           displayState.currentBlock.text,
-          displayState.currentBlock.isFinal,
+          false,
         );
-        scheduleCaptionIdleCommit(role);
+        scheduleTurnIdleCommit();
       },
       onTranscriptFinal: (text) => {
         returnActivityToListening();
@@ -508,11 +547,15 @@ export function ConversationMode() {
           return;
         }
 
-        clearCaptionIdleCommit(role);
         const displayState =
           captionBuffersRef.current[role].replaceWithFinalText(text);
 
-        updateConversationCaption(role, displayState.currentBlock.text, true);
+        updateConversationTurn(
+          getConversationLanguageForRole(role),
+          displayState.currentBlock.text,
+          false,
+        );
+        scheduleTurnIdleCommit();
       },
       onError: (message) => {
         clearConversationActivityTimers();
@@ -542,23 +585,24 @@ export function ConversationMode() {
     syncActivityWithConnectionStatus(derivedStatus);
   }
 
-  function updateConversationCaption(
-    role: ConversationSessionRole,
+  function updateConversationTurn(
+    language: SupportedLanguage,
     text: string,
     isFinal = false,
     detectedLanguage?: SupportedLanguage | "unknown",
   ) {
-    setCaption((current) =>
-      createConversationCaption({
-        sessionId: current.sessionId,
-        topLanguage: current.top.language,
-        bottomLanguage: current.bottom.language,
-        topText: role === "top" ? text : current.top.text,
-        bottomText: role === "bottom" ? text : current.bottom.text,
-        isFinal,
-        detectedLanguage: detectedLanguage ?? current.detectedLanguage,
-      }),
-    );
+    if (!text.trim()) {
+      return;
+    }
+
+    const nextTurn = conversationTurnBufferRef.current.startOrUpdateTurn({
+      sessionId: sessionIdRef.current,
+      language,
+      text,
+      detectedSourceLanguage: detectedLanguage,
+    });
+
+    setConversationCaptionFromTurn(nextTurn, isFinal);
   }
 
   function cleanupRealtimeConnections() {
@@ -570,7 +614,8 @@ export function ConversationMode() {
     mediaStreamRef.current = null;
     stopMicrophoneLevel();
     clearConversationActivityTimers();
-    clearAllCaptionIdleCommits();
+    clearTurnIdleCommit();
+    conversationTurnBufferRef.current.clear();
     sessionStatusesRef.current = {
       top: "stopped",
       bottom: "stopped",
@@ -578,67 +623,71 @@ export function ConversationMode() {
   }
 
   function handleTopLanguageChange(language: SupportedLanguage) {
+    if (active || busy) {
+      return;
+    }
+
     setTopLanguage(language);
 
-    if (!active) {
-      resetCaptionBuffers(language, bottomLanguage);
-      setCaption(
-        createConversationCaption({
-          sessionId,
-          topLanguage: language,
-          bottomLanguage,
-          topText: "",
-          bottomText: "",
-        }),
-      );
-    }
+    resetCaptionBuffers(language, bottomLanguage);
+    setCaption(
+      createConversationCaption({
+        sessionId,
+        topLanguage: language,
+        bottomLanguage,
+        topText: "",
+        bottomText: "",
+      }),
+    );
   }
 
   function handleBottomLanguageChange(language: SupportedLanguage) {
+    if (active || busy) {
+      return;
+    }
+
     setBottomLanguage(language);
 
-    if (!active) {
-      resetCaptionBuffers(topLanguage, language);
-      setCaption(
-        createConversationCaption({
-          sessionId,
-          topLanguage,
-          bottomLanguage: language,
-          topText: "",
-          bottomText: "",
-        }),
-      );
-    }
+    resetCaptionBuffers(topLanguage, language);
+    setCaption(
+      createConversationCaption({
+        sessionId,
+        topLanguage,
+        bottomLanguage: language,
+        topText: "",
+        bottomText: "",
+      }),
+    );
   }
 
-  function scheduleCaptionIdleCommit(role: ConversationSessionRole) {
-    clearCaptionIdleCommit(role);
-    captionIdleCommitTimeoutsRef.current[role] = window.setTimeout(() => {
-      const displayState = captionBuffersRef.current[role].commitCurrentBlock();
+  function scheduleTurnIdleCommit() {
+    clearTurnIdleCommit();
+    turnIdleCommitTimeoutRef.current = window.setTimeout(() => {
+      turnIdleCommitTimeoutRef.current = null;
+      captionBuffersRef.current.top.commitCurrentBlock();
+      captionBuffersRef.current.bottom.commitCurrentBlock();
+      const finalTurn = conversationTurnBufferRef.current.commitCurrentTurn();
 
-      updateConversationCaption(role, displayState.currentBlock.text, true);
+      setConversationCaptionFromTurn(finalTurn, true);
     }, CAPTION_IDLE_COMMIT_MS);
   }
 
-  function clearCaptionIdleCommit(role: ConversationSessionRole) {
-    const timeoutId = captionIdleCommitTimeoutsRef.current[role];
-
-    if (timeoutId !== undefined) {
-      window.clearTimeout(timeoutId);
-      delete captionIdleCommitTimeoutsRef.current[role];
-    }
+  function clearTurnIdleCommit() {
+    clearTimeoutRef(turnIdleCommitTimeoutRef);
   }
 
-  function clearAllCaptionIdleCommits() {
-    clearCaptionIdleCommit("top");
-    clearCaptionIdleCommit("bottom");
+  function getConversationLanguageForRole(
+    role: ConversationSessionRole,
+  ): SupportedLanguage {
+    return role === "top" ? topLanguage : bottomLanguage;
   }
 
   function resetCaptionBuffers(
     nextTopLanguage: SupportedLanguage,
     nextBottomLanguage: SupportedLanguage,
   ) {
-    clearAllCaptionIdleCommits();
+    clearTurnIdleCommit();
+    conversationTurnBufferRef.current.clear();
     captionBuffersRef.current.top.setLanguage(nextTopLanguage);
     captionBuffersRef.current.bottom.setLanguage(nextBottomLanguage);
   }
@@ -652,6 +701,7 @@ export function ConversationMode() {
         bottomText={caption.bottom.text}
         topFontSize={topCaptionFontSize}
         bottomFontSize={bottomCaptionFontSize}
+        languageSelectDisabled={active || busy}
         onTopLanguageChange={handleTopLanguageChange}
         onBottomLanguageChange={handleBottomLanguageChange}
       />

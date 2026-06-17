@@ -1,3 +1,4 @@
+import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import {
   LANGUAGE_FLAG_LABELS,
   LANGUAGE_LABELS,
@@ -13,6 +14,7 @@ type CombinedSubtitlePanelProps = {
   bottomText: string;
   topFontSize: number;
   bottomFontSize: number;
+  languageSelectDisabled?: boolean;
   onTopLanguageChange: (language: SupportedLanguage) => void;
   onBottomLanguageChange: (language: SupportedLanguage) => void;
 };
@@ -24,6 +26,7 @@ export function CombinedSubtitlePanel({
   bottomText,
   topFontSize,
   bottomFontSize,
+  languageSelectDisabled = false,
   onTopLanguageChange,
   onBottomLanguageChange,
 }: CombinedSubtitlePanelProps) {
@@ -38,12 +41,14 @@ export function CombinedSubtitlePanel({
             id="first-display-language"
             value={topLanguage}
             label="첫번째 표시언어"
+            disabled={languageSelectDisabled}
             onChange={onTopLanguageChange}
           />
           <FlagLanguageSelect
             id="second-display-language"
             value={bottomLanguage}
             label="두번째 표시언어"
+            disabled={languageSelectDisabled}
             onChange={onBottomLanguageChange}
           />
         </div>
@@ -69,6 +74,7 @@ type FlagLanguageSelectProps = {
   id: string;
   value: SupportedLanguage;
   label: string;
+  disabled?: boolean;
   onChange: (language: SupportedLanguage) => void;
 };
 
@@ -76,6 +82,7 @@ function FlagLanguageSelect({
   id,
   value,
   label,
+  disabled = false,
   onChange,
 }: FlagLanguageSelectProps) {
   return (
@@ -83,8 +90,9 @@ function FlagLanguageSelect({
       id={id}
       value={value}
       aria-label={`${label} ${LANGUAGE_LABELS[value]}`}
+      disabled={disabled}
       onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-      className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
+      className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold disabled:cursor-not-allowed disabled:opacity-60"
     >
       {SUPPORTED_LANGUAGES.map((language) => (
         <option key={language} value={language}>
@@ -103,6 +111,7 @@ type CaptionLineProps = {
 
 function CaptionLine({ language, text, fontSize }: CaptionLineProps) {
   const empty = text.length === 0;
+  const displayText = empty ? "" : formatCaptionParagraphSpacing(text);
 
   return (
     <section
@@ -121,7 +130,7 @@ function CaptionLine({ language, text, fontSize }: CaptionLineProps) {
         }`}
         style={{ fontSize: empty ? 20 : fontSize }}
       >
-        {empty ? DETECTED_LANGUAGE_PLACEHOLDERS[language] : text}
+        {empty ? DETECTED_LANGUAGE_PLACEHOLDERS[language] : displayText}
       </p>
     </section>
   );

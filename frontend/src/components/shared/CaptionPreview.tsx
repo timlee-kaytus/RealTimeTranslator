@@ -1,3 +1,4 @@
+import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import { LANGUAGE_LABELS } from "@/lib/types/language";
 import type { SupportedLanguage } from "@/lib/types/language";
 
@@ -63,6 +64,7 @@ function CaptionPreviewLine({
   fontSize,
 }: CaptionPreviewLineProps) {
   const empty = text.length === 0;
+  const displayText = empty ? "" : formatCaptionParagraphSpacing(text);
 
   return (
     <div className="flex min-h-0 items-center justify-center overflow-hidden">
@@ -73,7 +75,7 @@ function CaptionPreviewLine({
         }`}
         style={{ fontSize: empty ? Math.min(24, fontSize) : fontSize }}
       >
-        {empty ? "자막 대기 중" : text}
+        {empty ? "자막 대기 중" : displayText}
       </p>
     </div>
   );
