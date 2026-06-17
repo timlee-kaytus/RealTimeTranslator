@@ -32,6 +32,19 @@ export function CaptionSizeControls({
     }));
   }
 
+  function adjustTransparency(delta: number) {
+    onSettingsChange((current) => ({
+      ...current,
+      backgroundOpacity: clampBackgroundOpacity(
+        current.backgroundOpacity - delta,
+      ),
+    }));
+  }
+
+  const transparencyPercent = Math.round(
+    (1 - settings.backgroundOpacity) * 100,
+  );
+
   return (
     <div className="space-y-4 rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2 text-sm font-black text-zinc-800">
@@ -50,7 +63,10 @@ export function CaptionSizeControls({
                 type="button"
                 aria-pressed={selected}
                 onClick={() =>
-                  onSettingsChange(FLOATING_CAPTION_PRESETS[preset])
+                  onSettingsChange((current) => ({
+                    ...FLOATING_CAPTION_PRESETS[preset],
+                    backgroundOpacity: current.backgroundOpacity,
+                  }))
                 }
                 className={`h-10 rounded-[8px] border px-2 text-sm font-bold transition ${
                   selected
@@ -99,10 +115,36 @@ export function CaptionSizeControls({
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-zinc-500">
+      <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
+        <button
+          type="button"
+          aria-label="투명도 낮춤"
+          onClick={() => adjustTransparency(-0.1)}
+          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+        >
+          <Minus aria-hidden className="size-5" />
+        </button>
+        <div className="rounded-[8px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-center">
+          <div className="text-xs font-bold text-zinc-500">배경 투명도</div>
+          <div className="text-sm font-black text-zinc-950">
+            {transparencyPercent}%
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-label="투명도 높임"
+          onClick={() => adjustTransparency(0.1)}
+          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+        >
+          <Plus aria-hidden className="size-5" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold text-zinc-500">
         <span>{settings.width}px</span>
         <span>{settings.height}px</span>
         <span>{settings.fontSize}px</span>
+        <span>{transparencyPercent}%</span>
       </div>
     </div>
   );
@@ -112,3 +154,6 @@ function clampFontSize(value: number) {
   return Math.min(88, Math.max(24, value));
 }
 
+function clampBackgroundOpacity(value: number) {
+  return Math.min(0.85, Math.max(0.15, value));
+}

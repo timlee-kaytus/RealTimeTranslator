@@ -30,6 +30,10 @@ export function loadFloatingCaptionSettings(): FloatingCaptionSettings {
         width: parsedValue.width,
         height: parsedValue.height,
         fontSize: parsedValue.fontSize,
+        backgroundOpacity:
+          typeof parsedValue.backgroundOpacity === "number"
+            ? clampBackgroundOpacity(parsedValue.backgroundOpacity)
+            : DEFAULT_FLOATING_CAPTION_SETTINGS.backgroundOpacity,
       };
     }
   } catch {
@@ -52,3 +56,6 @@ export function saveFloatingCaptionSettings(
   );
 }
 
+function clampBackgroundOpacity(value: number): number {
+  return Math.min(0.85, Math.max(0.15, value));
+}

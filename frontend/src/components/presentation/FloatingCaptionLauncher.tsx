@@ -43,7 +43,9 @@ export function FloatingCaptionLauncher({
       });
 
       nextWindow.document.open();
-      nextWindow.document.write(createFloatingCaptionMarkup(fontSize));
+      nextWindow.document.write(
+        createFloatingCaptionMarkup(fontSize, settings.backgroundOpacity),
+      );
       nextWindow.document.close();
       setPipWindow(nextWindow);
     } catch (error) {
@@ -68,7 +70,12 @@ export function FloatingCaptionLauncher({
       textElement.lang = language;
       textElement.style.fontSize = `${fontSize}px`;
     }
-  }, [fontSize, language, pipWindow, text]);
+
+    applyFloatingCaptionBackground(
+      document,
+      settings.backgroundOpacity,
+    );
+  }, [fontSize, language, pipWindow, settings.backgroundOpacity, text]);
 
   useEffect(() => {
     if (!pipWindow || pipWindow.closed) {
@@ -110,7 +117,12 @@ export function FloatingCaptionLauncher({
   );
 }
 
-function createFloatingCaptionMarkup(fontSize: number) {
+function createFloatingCaptionMarkup(
+  fontSize: number,
+  backgroundOpacity: number,
+) {
+  const backgroundColor = createFloatingBackgroundColor(backgroundOpacity);
+
   return `<!doctype html>
 <html lang="ko">
   <head>
@@ -123,7 +135,7 @@ function createFloatingCaptionMarkup(fontSize: number) {
         width: 100%;
         height: 100%;
         margin: 0;
-        background: #09090b;
+        background: ${backgroundColor};
         color: #ffffff;
         font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       }
@@ -147,6 +159,9 @@ function createFloatingCaptionMarkup(fontSize: number) {
         font-size: ${fontSize}px;
         font-weight: 950;
         line-height: 1.14;
+        text-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.95),
+          0 0 18px rgba(0, 0, 0, 0.8);
       }
     </style>
   </head>
@@ -156,4 +171,20 @@ function createFloatingCaptionMarkup(fontSize: number) {
     </main>
   </body>
 </html>`;
+}
+
+function applyFloatingCaptionBackground(
+  document: Document,
+  backgroundOpacity: number,
+) {
+  const backgroundColor = createFloatingBackgroundColor(backgroundOpacity);
+
+  document.documentElement.style.background = backgroundColor;
+  document.body.style.background = backgroundColor;
+}
+
+function createFloatingBackgroundColor(backgroundOpacity: number) {
+  const opacity = Math.min(0.85, Math.max(0.15, backgroundOpacity));
+
+  return `rgba(9, 9, 11, ${opacity.toFixed(2)})`;
 }
