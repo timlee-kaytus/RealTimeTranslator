@@ -42,9 +42,9 @@ export function CaptionSizeControls({
   );
 
   return (
-    <div className="space-y-4 rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-sm font-black text-zinc-800">
-        <Type aria-hidden className="size-4 text-emerald-700" />
+    <div className="rtt-card space-y-4 p-4">
+      <div className="flex items-center gap-2 text-sm font-black text-[#101114]">
+        <Type aria-hidden className="size-4 text-[#7132f5]" />
         자막 크기
       </div>
 
@@ -53,7 +53,7 @@ export function CaptionSizeControls({
           type="button"
           aria-label="글자 작게"
           onClick={() => adjustFontSize(-4)}
-          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+          className="rtt-icon-button"
         >
           <Minus aria-hidden className="size-5" />
         </button>
@@ -70,24 +70,24 @@ export function CaptionSizeControls({
               fontSize: Number(event.target.value),
             }))
           }
-          className="w-full accent-emerald-700"
+          className="rtt-range w-full"
         />
         <button
           type="button"
           aria-label="글자 크게"
           onClick={() => adjustFontSize(4)}
-          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+          className="rtt-icon-button"
         >
           <Plus aria-hidden className="size-5" />
         </button>
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm font-black text-zinc-800">
-          <Blend aria-hidden className="size-4 text-emerald-700" />
+        <div className="flex items-center gap-2 text-sm font-black text-[#101114]">
+          <Blend aria-hidden className="size-4 text-[#7132f5]" />
           배경 투명도
         </div>
-        <span className="text-sm font-black tabular-nums text-zinc-950">
+        <span className="text-sm font-black tabular-nums text-[#686b82]">
           {transparencyPercent}%
         </span>
       </div>
@@ -97,7 +97,7 @@ export function CaptionSizeControls({
           type="button"
           aria-label="투명도 낮춤"
           onClick={() => adjustTransparency(-0.1)}
-          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+          className="rtt-icon-button"
         >
           <Minus aria-hidden className="size-5" />
         </button>
@@ -111,13 +111,13 @@ export function CaptionSizeControls({
           onChange={(event) =>
             setTransparencyPercent(Number(event.target.value))
           }
-          className="w-full accent-emerald-700"
+          className="rtt-range w-full"
         />
         <button
           type="button"
           aria-label="투명도 높임"
           onClick={() => adjustTransparency(0.1)}
-          className="grid size-11 place-items-center rounded-[8px] border border-zinc-300 bg-white text-zinc-800 transition hover:border-zinc-500"
+          className="rtt-icon-button"
         >
           <Plus aria-hidden className="size-5" />
         </button>

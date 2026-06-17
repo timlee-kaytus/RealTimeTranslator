@@ -21,16 +21,23 @@ const activityMessages: Record<ConversationActivityStatus, string> = {
 };
 
 const activityClasses: Record<ConversationActivityStatus, string> = {
-  idle: "border-zinc-200 bg-white text-zinc-700",
-  connecting: "border-amber-200 bg-amber-50 text-amber-800",
-  warming_up: "border-amber-200 bg-amber-50 text-amber-900",
-  ready: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  listening: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  speech_detected: "border-lime-200 bg-lime-50 text-lime-900",
-  translating: "border-cyan-200 bg-cyan-50 text-cyan-900",
-  reconnecting: "border-amber-200 bg-amber-50 text-amber-800",
-  error: "border-red-200 bg-red-50 text-red-800",
-  stopped: "border-red-700 bg-red-600 text-white",
+  idle: "border-[#dedee5] bg-[rgba(104,107,130,0.12)] text-[#484b5e]",
+  connecting:
+    "border-[rgba(133,91,251,0.28)] bg-[rgba(133,91,251,0.16)] text-[#7132f5]",
+  warming_up:
+    "border-[rgba(133,91,251,0.28)] bg-[rgba(133,91,251,0.16)] text-[#7132f5]",
+  ready:
+    "border-[rgba(20,158,97,0.24)] bg-[rgba(20,158,97,0.16)] text-[#026b3f]",
+  listening:
+    "border-[rgba(20,158,97,0.24)] bg-[rgba(20,158,97,0.16)] text-[#026b3f]",
+  speech_detected:
+    "border-[rgba(20,158,97,0.24)] bg-[rgba(20,158,97,0.16)] text-[#026b3f]",
+  translating:
+    "border-[rgba(133,91,251,0.28)] bg-[rgba(133,91,251,0.16)] text-[#7132f5]",
+  reconnecting:
+    "border-[rgba(133,91,251,0.28)] bg-[rgba(133,91,251,0.16)] text-[#7132f5]",
+  error: "border-red-100 bg-red-50 text-red-700",
+  stopped: "border-[#dedee5] bg-[rgba(104,107,130,0.12)] text-[#484b5e]",
 };
 
 export function ConversationActivityHint({
@@ -39,7 +46,7 @@ export function ConversationActivityHint({
   return (
     <div
       aria-live="polite"
-      className={`inline-flex h-8 w-fit max-w-full items-center justify-center rounded-full border px-3 text-center text-xs font-bold ${activityClasses[status]}`}
+      className={`inline-flex min-h-8 w-fit max-w-full items-center justify-center rounded-[8px] border px-3 py-1 text-center text-xs font-bold ${activityClasses[status]}`}
     >
       {activityMessages[status]}
     </div>

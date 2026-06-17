@@ -349,7 +349,7 @@ export function PresentationMode() {
 
   return (
     <section className="grid min-h-[calc(100dvh-76px)] content-start gap-4 p-3 md:p-4">
-      <div className="rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rtt-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <LanguageSelect
             id="presentation-output-language"

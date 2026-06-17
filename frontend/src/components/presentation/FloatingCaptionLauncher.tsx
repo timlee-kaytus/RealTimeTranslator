@@ -102,10 +102,10 @@ export function FloatingCaptionLauncher({
   }, [onSettingsChange, pipWindow]);
 
   return (
-    <div className="space-y-3 rounded-[8px] border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="rtt-card space-y-3 p-4">
       {!support.supported && <BrowserSupportNotice />}
       <ErrorBanner message={errorMessage} />
-      <div className="overflow-hidden rounded-[8px] border border-zinc-200 bg-zinc-50">
+      <div className="overflow-hidden rounded-[12px] border border-[#dedee5] bg-[rgba(148,151,169,0.08)]">
         <Image
           src="/images/presentation-caption-illustration.png"
           alt="발표 화면 위에 자막이 표시되는 일러스트"
@@ -119,7 +119,7 @@ export function FloatingCaptionLauncher({
         type="button"
         disabled={!support.supported}
         onClick={openFloatingCaption}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-zinc-950 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="rtt-outline-button inline-flex h-12 w-full items-center justify-center gap-2 px-4 text-sm disabled:cursor-not-allowed disabled:border-[#dedee5] disabled:bg-[#c4c6d1] disabled:text-white"
       >
         <PictureInPicture2 aria-hidden className="size-5" />
         {pipWindow && !pipWindow.closed ? "플로팅 갱신" : "플로팅 시작"}

@@ -12,16 +12,16 @@ export function MicLevelMeter({
   disabled = false,
 }: MicLevelMeterProps) {
   const percent = Math.round(Math.min(1, Math.max(0, level) * 2) * 100);
-  const meterColor = speaking ? "bg-emerald-500" : "bg-zinc-950";
+  const meterColor = speaking ? "bg-[#149e61]" : "bg-[#7132f5]";
 
   return (
     <div
-      className={`inline-flex h-10 min-w-28 items-center gap-2 rounded-[8px] border px-3 ${
+      className={`inline-flex h-10 min-w-28 items-center gap-2 rounded-[12px] border px-3 ${
         disabled
-          ? "border-zinc-200 bg-zinc-50 text-zinc-400"
+          ? "border-[#dedee5] bg-[rgba(148,151,169,0.08)] text-[#9497a9]"
           : speaking
-            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-            : "border-zinc-200 bg-white text-zinc-700"
+            ? "border-[rgba(20,158,97,0.24)] bg-[rgba(20,158,97,0.16)] text-[#026b3f]"
+            : "border-[#dedee5] bg-white text-[#686b82]"
       }`}
     >
       <span className="shrink-0 text-xs font-bold">마이크(麦克风)</span>
@@ -30,12 +30,12 @@ export function MicLevelMeter({
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={disabled ? 0 : percent}
-        className="h-2 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200"
+        className="h-2 w-12 shrink-0 overflow-hidden rounded-full bg-[rgba(148,151,169,0.14)]"
         role="meter"
       >
         <div
           className={`h-full rounded-full transition-[width,background-color] duration-150 ${
-            disabled ? "bg-zinc-300" : meterColor
+            disabled ? "bg-[#c4c6d1]" : meterColor
           }`}
           style={{ width: disabled ? "0%" : `${percent}%` }}
         />

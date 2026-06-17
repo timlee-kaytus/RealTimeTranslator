@@ -17,8 +17,16 @@ export function MicToggleButton({
 }: MicToggleButtonProps) {
   const Icon = active ? Square : Mic;
   const buttonClassName = compact
-    ? "inline-flex h-8 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-zinc-950 px-3 !text-xs font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-    : "inline-flex h-12 min-w-38 items-center justify-center gap-2 rounded-[8px] bg-zinc-950 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400";
+    ? `inline-flex h-9 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border px-3 !text-xs font-bold transition disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white ${
+        active
+          ? "border-[#dedee5] bg-[rgba(148,151,169,0.08)] text-[#101114] hover:bg-[#eef0f6]"
+          : "border-transparent bg-[#7132f5] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#5741d8]"
+      }`
+    : `inline-flex h-12 min-w-38 items-center justify-center gap-2 rounded-[12px] border px-5 text-base font-bold transition disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white ${
+        active
+          ? "border-[#dedee5] bg-[rgba(148,151,169,0.08)] text-[#101114] hover:bg-[#eef0f6]"
+          : "border-transparent bg-[#7132f5] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#5741d8]"
+      }`;
   const iconClassName = compact ? "size-4" : "size-5";
 
   return (

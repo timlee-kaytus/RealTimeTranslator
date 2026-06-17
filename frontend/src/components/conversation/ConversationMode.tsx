@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
+import { ConversationActivityHint } from "@/components/conversation/ConversationActivityHint";
 import { CombinedSubtitlePanel } from "@/components/conversation/CombinedSubtitlePanel";
 import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -655,7 +656,8 @@ export function ConversationMode() {
         onBottomLanguageChange={handleBottomLanguageChange}
       />
 
-      <div className="flex flex-wrap items-center justify-center gap-3 rounded-[8px] border border-zinc-200 bg-white px-3 py-3 shadow-sm">
+      <div className="rtt-control-card flex flex-wrap items-center justify-center gap-3 px-3 py-3">
+        <ConversationActivityHint status={activityStatus} />
         <MicLevelMeter
           disabled={!active && !busy}
           level={micLevel}

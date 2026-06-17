@@ -1,14 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f6;
-  --foreground: #18181b;
+  --background: #f8f8fb;
+  --foreground: #101114;
+  --rtt-brand: #7132f5;
+  --rtt-brand-dark: #5741d8;
+  --rtt-brand-deep: #5b1ecf;
+  --rtt-brand-subtle: rgba(133, 91, 251, 0.16);
+  --rtt-text-primary: #101114;
+  --rtt-text-secondary: #686b82;
+  --rtt-text-muted: #9497a9;
+  --rtt-border: #dedee5;
+  --rtt-border-soft: rgba(104, 107, 130, 0.24);
+  --rtt-success: #149e61;
+  --rtt-success-dark: #026b3f;
+  --rtt-success-subtle: rgba(20, 158, 97, 0.16);
+  --rtt-surface-muted: rgba(148, 151, 169, 0.08);
+  --rtt-shadow-soft: rgba(0, 0, 0, 0.03) 0px 4px 24px;
+  --rtt-shadow-micro: rgba(16, 24, 40, 0.04) 0px 1px 4px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-sans: Inter, "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial,
+    "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -29,7 +45,16 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-family:
+    Inter,
+    "IBM Plex Sans",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    system-ui,
+    sans-serif;
 }
 
 button,
@@ -58,4 +83,108 @@ input {
   overflow-wrap: anywhere;
   word-break: keep-all;
   letter-spacing: 0;
+}
+
+.rtt-card {
+  border: 1px solid var(--rtt-border);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--rtt-shadow-soft);
+}
+
+.rtt-control-card {
+  border: 1px solid var(--rtt-border);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--rtt-shadow-soft);
+}
+
+.rtt-primary-button {
+  border-radius: 12px;
+  background: var(--rtt-brand);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: var(--rtt-shadow-soft);
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.rtt-primary-button:hover {
+  background: var(--rtt-brand-dark);
+}
+
+.rtt-primary-button:disabled {
+  cursor: not-allowed;
+  background: #c4c6d1;
+  box-shadow: none;
+}
+
+.rtt-outline-button {
+  border: 1px solid var(--rtt-brand-dark);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--rtt-brand-dark);
+  font-weight: 700;
+  box-shadow: var(--rtt-shadow-micro);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.rtt-outline-button:hover {
+  border-color: var(--rtt-brand);
+  background: var(--rtt-brand-subtle);
+  color: var(--rtt-brand-deep);
+}
+
+.rtt-outline-button:disabled,
+.rtt-outline-button:disabled:hover {
+  cursor: not-allowed;
+  border-color: var(--rtt-border);
+  background: #c4c6d1;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.rtt-icon-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--rtt-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--rtt-text-primary);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.rtt-icon-button:hover {
+  border-color: var(--rtt-brand);
+  color: var(--rtt-brand);
+}
+
+.rtt-range {
+  accent-color: var(--rtt-brand);
+}
+
+.rtt-select {
+  border: 1px solid var(--rtt-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--rtt-text-primary);
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.rtt-select:focus {
+  border-color: var(--rtt-brand);
+  box-shadow: 0 0 0 2px var(--rtt-brand-subtle);
 }

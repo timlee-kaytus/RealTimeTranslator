@@ -20,14 +20,14 @@ export function LanguageSelect({
   onChange,
 }: LanguageSelectProps) {
   return (
-    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+    <label className="flex items-center gap-2 text-sm font-semibold text-[#686b82]">
       <span className="whitespace-nowrap">{label}</span>
       <select
         id={id}
         value={value}
         aria-label={`${label} ${LANGUAGE_LABELS[value]}`}
         onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-        className="h-10 w-16 rounded-[8px] border border-zinc-300 bg-white px-2 text-center text-xl font-semibold text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
       >
         {SUPPORTED_LANGUAGES.map((language) => (
           <option

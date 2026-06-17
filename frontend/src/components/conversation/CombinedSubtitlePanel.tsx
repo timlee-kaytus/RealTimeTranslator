@@ -28,10 +28,10 @@ export function CombinedSubtitlePanel({
   onBottomLanguageChange,
 }: CombinedSubtitlePanelProps) {
   return (
-    <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-emerald-300 bg-white p-3 shadow-sm shadow-emerald-950/5 ring-1 ring-emerald-100 md:p-4">
+    <article className="rtt-card flex h-full min-h-0 flex-col overflow-hidden p-3 md:p-4">
       <div className="flex shrink-0 justify-end">
-        <div className="flex flex-wrap items-center justify-end gap-2 rounded-[8px] border border-zinc-200 bg-zinc-50 px-2 py-2">
-          <span className="whitespace-nowrap text-xs font-bold text-zinc-700 md:text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-2 rounded-[12px] border border-[#dedee5] bg-[rgba(148,151,169,0.08)] px-2 py-2">
+          <span className="whitespace-nowrap text-xs font-bold text-[#686b82] md:text-sm">
             표시언어(显示语言)
           </span>
           <FlagLanguageSelect
@@ -84,7 +84,7 @@ function FlagLanguageSelect({
       value={value}
       aria-label={`${label} ${LANGUAGE_LABELS[value]}`}
       onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-      className="h-10 w-16 rounded-[8px] border border-zinc-300 bg-white px-2 text-center text-xl font-semibold text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+      className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
     >
       {SUPPORTED_LANGUAGES.map((language) => (
         <option key={language} value={language}>
@@ -107,17 +107,17 @@ function CaptionLine({ language, text, fontSize }: CaptionLineProps) {
   return (
     <section
       lang={language}
-      className="relative flex min-h-0 items-center justify-center overflow-hidden rounded-[8px] border border-zinc-200 bg-zinc-50/70 px-12 py-4 text-center"
+      className="relative flex min-h-0 items-center justify-center overflow-hidden rounded-[12px] border border-[#dedee5] bg-[rgba(148,151,169,0.08)] px-12 py-4 text-center"
     >
       <span
         aria-hidden
-        className="absolute left-4 top-4 rounded-full border border-zinc-200 bg-white px-2 py-1 text-xl shadow-sm"
+        className="absolute left-4 top-4 rounded-[8px] border border-[#dedee5] bg-white px-2 py-1 text-xl shadow-[rgba(16,24,40,0.04)_0px_1px_4px]"
       >
         {LANGUAGE_FLAG_LABELS[language]}
       </span>
       <p
-        className={`mx-auto max-w-5xl overflow-hidden font-black leading-[1.12] text-zinc-950 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] ${
-          empty ? "text-zinc-400" : ""
+        className={`mx-auto max-w-5xl overflow-hidden font-black leading-[1.12] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4] ${
+          empty ? "text-[#9497a9]" : "text-[#101114]"
         }`}
         style={{ fontSize: empty ? 20 : fontSize }}
       >
