@@ -64,6 +64,7 @@ export type CreateRealtimeSessionRequest = {
   targetLanguages: SupportedLanguage[];
   clientId: string;
   uiSessionId: string;
+  translationInstructions?: string;
 };
 
 export type RealtimeSessionCredential = {

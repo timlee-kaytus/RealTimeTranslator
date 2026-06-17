@@ -28,7 +28,8 @@ Conversation mode:
   "mode": "conversation",
   "targetLanguages": ["zh", "ko"],
   "clientId": "anonymous-or-user-id",
-  "uiSessionId": "uuid-from-frontend"
+  "uiSessionId": "uuid-from-frontend",
+  "translationInstructions": "Translate every utterance in a professional business tone and manner. Culturally appropriate adaptation and paraphrasing are allowed when they preserve the speaker's intent and improve naturalness for the target language."
 }
 ```
 
@@ -39,9 +40,14 @@ Presentation mode:
   "mode": "presentation",
   "targetLanguages": ["en"],
   "clientId": "anonymous-or-user-id",
-  "uiSessionId": "uuid-from-frontend"
+  "uiSessionId": "uuid-from-frontend",
+  "translationInstructions": "Translate every utterance in a professional business tone and manner. Culturally appropriate adaptation and paraphrasing are allowed when they preserve the speaker's intent and improve naturalness for the target language."
 }
 ```
+
+`translationInstructions` is an optional policy string for the backend to apply
+when creating realtime translation sessions. It must not include source text,
+translated text, or any user transcript content.
 
 Response:
 
@@ -99,4 +105,3 @@ Content-Type: application/json
 ```
 
 Usage events must not include source text or translated text.
-

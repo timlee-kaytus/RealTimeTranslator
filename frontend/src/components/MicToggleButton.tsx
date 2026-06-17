@@ -30,7 +30,7 @@ export function MicToggleButton({
       className={buttonClassName}
     >
       <Icon aria-hidden className={iconClassName} />
-      {active ? "통역 중지" : "실시간 번역"}
+      {active ? "통역 중지" : "실시간 번역(开始翻译)"}
     </button>
   );
 }

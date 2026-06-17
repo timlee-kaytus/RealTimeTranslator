@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { MicToggleButton } from "@/components/MicToggleButton";
+import { CombinedSubtitlePanel } from "@/components/conversation/CombinedSubtitlePanel";
 import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
-import { OpponentSubtitlePanel } from "@/components/conversation/OpponentSubtitlePanel";
-import { PushToTalkButton } from "@/components/conversation/PushToTalkButton";
-import { UserSubtitlePanel } from "@/components/conversation/UserSubtitlePanel";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { useMicrophoneLevel } from "@/hooks/useMicrophoneLevel";
 import {
@@ -28,6 +26,7 @@ import {
   getCaptionDisplayFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
+import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type {
   ConversationActivityStatus,
@@ -58,7 +57,6 @@ export function ConversationMode() {
   const [status, setStatus] = useState<RealtimeConnectionStatus>("stopped");
   const [activityStatus, setActivityStatus] =
     useState<ConversationActivityStatus>("stopped");
-  const [pushToTalkActive, setPushToTalkActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
   const [caption, setCaption] = useState<ConversationCaptionEvent>(() =>
@@ -101,8 +99,6 @@ export function ConversationMode() {
   const readyTimeoutRef = useRef<number | null>(null);
   const speechDetectedTimeoutRef = useRef<number | null>(null);
   const translatingResetTimeoutRef = useRef<number | null>(null);
-  const pushToTalkActiveRef = useRef(false);
-  const pushToTalkStartingRef = useRef(false);
 
   const active =
     isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
@@ -317,69 +313,12 @@ export function ConversationMode() {
   }, [active, bottomLanguage, markActivityTranslating, sessionId, topLanguage]);
 
   async function handleToggle() {
-    if (pushToTalkActiveRef.current) {
-      return;
-    }
-
     if (active || busy) {
       await stopSession();
       return;
     }
 
     await startSession();
-  }
-
-  async function handlePushToTalkStart() {
-    if (pushToTalkActiveRef.current || pushToTalkStartingRef.current) {
-      return;
-    }
-
-    if (status === "reconnecting") {
-      return;
-    }
-
-    pushToTalkActiveRef.current = true;
-    pushToTalkStartingRef.current = true;
-    setPushToTalkActive(true);
-
-    try {
-      if (active || busy) {
-        await stopSession();
-      }
-
-      if (!pushToTalkActiveRef.current) {
-        return;
-      }
-
-      const started = await startSession();
-
-      if (!pushToTalkActiveRef.current && started) {
-        await stopSession();
-      }
-    } finally {
-      pushToTalkStartingRef.current = false;
-
-      if (!pushToTalkActiveRef.current) {
-        setPushToTalkActive(false);
-      }
-    }
-  }
-
-  async function handlePushToTalkEnd() {
-    if (!pushToTalkActiveRef.current) {
-      return;
-    }
-
-    pushToTalkActiveRef.current = false;
-    setPushToTalkActive(false);
-
-    if (pushToTalkStartingRef.current) {
-      return;
-    }
-
-    if (active || busy) {
-      await stopSession();
-    }
   }
 
   async function startSession(): Promise<boolean> {
@@ -411,6 +350,7 @@ export function ConversationMode() {
         targetLanguages: [topLanguage, bottomLanguage],
         clientId: "anonymous",
         uiSessionId,
+        translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
       });
 
       setSessionId(session.sessionId);
@@ -703,12 +643,16 @@ export function ConversationMode() {
   }
 
   return (
-    <section className="grid h-[calc(100dvh-76px)] grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 overflow-hidden p-3 md:p-4">
-      <OpponentSubtitlePanel
-        language={topLanguage}
-        text={caption.top.text}
-        fontSize={topCaptionFontSize}
-        onLanguageChange={handleTopLanguageChange}
+    <section className="grid h-[calc(100dvh-76px)] grid-rows-[minmax(0,1fr)_auto] gap-3 overflow-hidden p-3 md:p-4">
+      <CombinedSubtitlePanel
+        topLanguage={topLanguage}
+        bottomLanguage={bottomLanguage}
+        topText={caption.top.text}
+        bottomText={caption.bottom.text}
+        topFontSize={topCaptionFontSize}
+        bottomFontSize={bottomCaptionFontSize}
+        onTopLanguageChange={handleTopLanguageChange}
+        onBottomLanguageChange={handleBottomLanguageChange}
       />
 
       <div className="flex flex-wrap items-center justify-center gap-3 rounded-[8px] border border-zinc-200 bg-white px-3 py-3 shadow-sm">
@@ -720,24 +664,11 @@ export function ConversationMode() {
         <MicToggleButton
           active={active || busy}
           compact
-          disabled={status === "reconnecting" || pushToTalkActive}
-          onClick={handleToggle}
-        />
-        <PushToTalkButton
-          active={pushToTalkActive}
           disabled={status === "reconnecting"}
-          onPressEnd={handlePushToTalkEnd}
-          onPressStart={handlePushToTalkStart}
+          onClick={handleToggle}
         />
         <ErrorBanner message={errorMessage} />
       </div>
-
-      <UserSubtitlePanel
-        language={bottomLanguage}
-        text={caption.bottom.text}
-        fontSize={bottomCaptionFontSize}
-        onLanguageChange={handleBottomLanguageChange}
-      />
     </section>
   );
 }

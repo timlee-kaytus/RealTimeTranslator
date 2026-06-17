@@ -35,6 +35,7 @@ import {
   loadFloatingCaptionSettings,
   saveFloatingCaptionSettings,
 } from "@/lib/storage/captionSettingsStorage";
+import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type {
   PresentationCaptionEvent,
@@ -185,6 +186,7 @@ export function PresentationMode() {
         targetLanguages: [outputLanguage],
         clientId: "anonymous",
         uiSessionId,
+        translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
       });
 
       setSessionId(session.sessionId);

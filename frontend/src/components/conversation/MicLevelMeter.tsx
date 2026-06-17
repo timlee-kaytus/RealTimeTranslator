@@ -11,7 +11,7 @@ export function MicLevelMeter({
   speaking,
   disabled = false,
 }: MicLevelMeterProps) {
-  const percent = Math.round(Math.min(1, Math.max(0, level)) * 100);
+  const percent = Math.round(Math.min(1, Math.max(0, level) * 2) * 100);
   const meterColor = speaking ? "bg-emerald-500" : "bg-zinc-950";
 
   return (
@@ -24,7 +24,7 @@ export function MicLevelMeter({
             : "border-zinc-200 bg-white text-zinc-700"
       }`}
     >
-      <span className="shrink-0 text-xs font-bold">마이크</span>
+      <span className="shrink-0 text-xs font-bold">마이크(麦克风)</span>
       <div
         aria-label="마이크 입력 레벨"
         aria-valuemax={100}
