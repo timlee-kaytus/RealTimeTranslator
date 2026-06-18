@@ -11,12 +11,11 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#111827",
     icons: [
       {
-        src: "/window.svg",
+        src: "/images/rtt-speaking-profile-icon.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
     ],
   };
 }
-

@@ -114,14 +114,14 @@ export function LoginScreen() {
 function RTTLogo() {
   return (
     <div className="absolute left-8 top-8 z-10 flex items-center gap-3 sm:left-12 sm:top-12 lg:left-16 lg:top-14">
-      <div
+      <Image
+        src="/images/rtt-speaking-profile-icon.png"
+        alt=""
         aria-hidden
-        className="relative grid size-11 place-items-center rounded-[14px] bg-white shadow-[0_12px_28px_rgba(97,59,255,0.12)]"
-      >
-        <span className="absolute bottom-3 left-2.5 h-5 w-2 rounded-t-full bg-[#613bff]" />
-        <span className="absolute bottom-3 left-[18px] h-7 w-2 rounded-t-full bg-[#7a5cff]" />
-        <span className="absolute bottom-3 right-2.5 h-5 w-2 rounded-t-full bg-[#9d8cff]" />
-      </div>
+        width={48}
+        height={48}
+        className="size-12 shrink-0 rounded-[16px] shadow-[0_12px_28px_rgba(35,52,93,0.14)]"
+      />
       <span className="text-[26px] font-black tracking-normal text-[#1b1d25]">
         RTT
       </span>

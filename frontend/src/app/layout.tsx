@@ -6,6 +6,21 @@ export const metadata: Metadata = {
   title: "실시간 번역 자막기",
   description: "한국어, 영어, 중국어 실시간 번역 자막 PWA",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      {
+        url: "/images/rtt-speaking-profile-icon.png",
+        type: "image/png",
+      },
+    ],
+    shortcut: ["/images/rtt-speaking-profile-icon.png"],
+    apple: [
+      {
+        url: "/images/rtt-speaking-profile-icon.png",
+        type: "image/png",
+      },
+    ],
+  },
   appleWebApp: {
     capable: true,
     title: "번역 자막기",
