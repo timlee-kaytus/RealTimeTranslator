@@ -60,7 +60,7 @@ export function LoginScreen() {
           className="w-full max-w-[620px] rounded-[28px] bg-white px-8 py-12 shadow-[0_20px_60px_rgba(28,30,40,0.06)] sm:min-h-[560px] sm:px-16 sm:py-16 lg:min-h-[620px] lg:px-[72px] lg:py-[72px]"
         >
           <h1 className="text-[44px] font-black leading-none tracking-normal text-[#1b1d25] sm:text-[54px]">
-            로그인
+            로그인(登录)
           </h1>
 
           <div className="mt-12 flex h-[76px] items-center gap-4 rounded-[18px] border border-[#d9dde8] bg-white px-6 transition focus-within:border-[#613bff] focus-within:shadow-[0_0_0_4px_rgba(141,116,255,0.18)]">
@@ -103,7 +103,7 @@ export function LoginScreen() {
             disabled={loading}
             className="mt-9 h-[82px] w-full rounded-[18px] bg-[linear-gradient(90deg,#613bff_0%,#5a35f0_100%)] text-[22px] font-bold text-white shadow-[0_18px_32px_rgba(97,59,255,0.22)] transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "확인 중..." : "로그인"}
+            {loading ? "확인 중..." : "로그인(登录)"}
           </button>
         </form>
       </section>
