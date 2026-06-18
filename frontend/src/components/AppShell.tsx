@@ -53,7 +53,7 @@ export function AppShell() {
               type="button"
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-[12px] border border-[#dedee5] bg-white px-3 text-sm font-bold text-[#4f5368] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] transition hover:border-[#c7c3f5] hover:bg-[#f4f2ff] hover:text-[#5741d8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-44"
+              className="inline-flex min-h-11 self-start items-center justify-center gap-2 whitespace-nowrap rounded-[12px] border border-[#dedee5] bg-white px-4 text-sm font-bold text-[#4f5368] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] transition hover:border-[#c7c3f5] hover:bg-[#f4f2ff] hover:text-[#5741d8] disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
             >
               <LogOut aria-hidden className="size-4" />
               {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
