@@ -131,7 +131,7 @@ function RTTLogo() {
 
 function LoginHeroVisual() {
   return (
-    <div className="relative mx-auto flex h-full min-h-[520px] max-w-[780px] items-center justify-center pt-20 lg:min-h-[calc(100dvh-112px)]">
+    <div className="relative flex h-full min-h-[520px] max-w-[780px] items-center justify-start pt-20 lg:min-h-[calc(100dvh-112px)]">
       <div className="absolute inset-x-2 bottom-[9%] h-28 rounded-[100%] bg-[radial-gradient(circle,rgba(28,107,118,0.18)_0%,rgba(28,107,118,0)_68%)]" />
       <div className="relative w-full max-w-[720px]">
         <div className="absolute -inset-4 rounded-[36px] bg-white/58 shadow-[0_34px_86px_rgba(23,32,52,0.14)] backdrop-blur-xl" />
