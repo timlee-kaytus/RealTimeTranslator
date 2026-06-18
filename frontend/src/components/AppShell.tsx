@@ -15,8 +15,8 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-[#f8f8fb] text-[#101114]">
       <PwaBootstrap />
-      <header className="sticky top-0 z-20 border-b border-[#dedee5] bg-white/95 px-3 py-3 backdrop-blur md:px-4">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+      <header className="sticky top-0 z-20 border-b border-[#dedee5] bg-white/95 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-3 md:px-4">
           <div className="flex min-w-0 items-center gap-3">
             <Image
               src="/images/conversation-logo-illustration.png"
