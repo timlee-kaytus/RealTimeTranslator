@@ -115,7 +115,11 @@ export function PresentationMode() {
     outputLanguage,
     secondaryOutputLanguage,
   );
+  const selectedSecondaryOutputLanguage =
+    secondaryOutputLanguage === "none" ? null : secondaryOutputLanguage;
   const secondaryOutput = caption.secondaryOutput;
+  const secondaryOutputText =
+    selectedSecondaryOutputLanguage === null ? undefined : secondaryOutput?.text ?? "";
   const captionFontSize = getCaptionDisplayFontSize({
     mode: "presentation",
     language: outputLanguage,
@@ -123,12 +127,12 @@ export function PresentationMode() {
     preferredFontSize: settings.fontSize,
   });
   const secondaryCaptionFontSize =
-    secondaryOutputLanguage === "none"
+    selectedSecondaryOutputLanguage === null
       ? undefined
       : getCaptionDisplayFontSize({
           mode: "presentation",
-          language: secondaryOutputLanguage,
-          text: secondaryOutput?.text ?? "",
+          language: selectedSecondaryOutputLanguage,
+          text: secondaryOutputText ?? "",
           preferredFontSize: settings.fontSize,
         });
 
@@ -636,7 +640,20 @@ export function PresentationMode() {
       }
 
       if (!current.secondaryOutput) {
-        return current;
+        if (secondaryOutputLanguage === "none") {
+          return current;
+        }
+
+        return createPresentationCaption(
+          current.output.text,
+          current.output.language,
+          current.sessionId,
+          isFinal,
+          {
+            language: secondaryOutputLanguage,
+            text,
+          },
+        );
       }
 
       return createPresentationCaption(
@@ -717,8 +734,8 @@ export function PresentationMode() {
         language={outputLanguage}
         text={caption.output.text}
         fontSize={captionFontSize}
-        secondaryLanguage={secondaryOutput?.language ?? null}
-        secondaryText={secondaryOutput?.text}
+        secondaryLanguage={selectedSecondaryOutputLanguage}
+        secondaryText={secondaryOutputText}
         secondaryFontSize={secondaryCaptionFontSize}
       />
 
@@ -731,8 +748,8 @@ export function PresentationMode() {
         <FloatingCaptionLauncher
           text={caption.output.text}
           language={outputLanguage}
-          secondaryText={secondaryOutput?.text}
-          secondaryLanguage={secondaryOutput?.language ?? null}
+          secondaryText={secondaryOutputText}
+          secondaryLanguage={selectedSecondaryOutputLanguage}
           settings={settings}
           fontSize={captionFontSize}
           secondaryFontSize={secondaryCaptionFontSize}
