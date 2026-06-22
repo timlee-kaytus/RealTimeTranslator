@@ -1,8 +1,8 @@
 import {
   hasTerminalPunctuation,
-  normalizeCaptionText,
   splitCaptionText,
 } from "@/lib/caption/captionSegmenter";
+import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type { TranslationMode } from "@/lib/types/realtime";
 
@@ -48,7 +48,7 @@ export class CaptionBuffer {
   }
 
   appendDelta(delta: string): CaptionDisplayState {
-    const normalizedDelta = delta.replace(/\s+/g, " ");
+    const normalizedDelta = normalizeRealtimeDelta(delta);
 
     if (!normalizedDelta.trim()) {
       return this.getState();
@@ -58,7 +58,7 @@ export class CaptionBuffer {
       this.archiveCurrentBlock();
     }
 
-    const nextText = normalizeCaptionText(
+    const nextText = normalizeRealtimeDelta(
       `${this.state.currentBlock.text}${normalizedDelta}`,
     );
 
@@ -82,6 +82,10 @@ export class CaptionBuffer {
       ...this.state,
       currentBlock: {
         ...this.state.currentBlock,
+        text: normalizeCaptionText(
+          this.state.currentBlock.text,
+          this.language,
+        ),
         isFinal: true,
       },
     };
@@ -106,10 +110,13 @@ export class CaptionBuffer {
   }
 
   private applyText(text: string, finalLastBlock: boolean): CaptionDisplayState {
+    const captionText = finalLastBlock
+      ? normalizeCaptionText(text, this.language)
+      : text;
     const segments = splitCaptionText({
       mode: this.mode,
       language: this.language,
-      text,
+      text: captionText,
     });
 
     if (segments.length === 0) {
@@ -158,4 +165,8 @@ export class CaptionBuffer {
       createdAt: new Date().toISOString(),
     };
   }
+}
+
+function normalizeRealtimeDelta(text: string): string {
+  return text.replace(/\s+/g, " ").trimStart();
 }

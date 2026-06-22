@@ -111,7 +111,7 @@ type CaptionLineProps = {
 
 function CaptionLine({ language, text, fontSize }: CaptionLineProps) {
   const empty = text.length === 0;
-  const displayText = empty ? "" : formatCaptionParagraphSpacing(text);
+  const displayText = empty ? "" : formatCaptionParagraphSpacing(text, language);
 
   return (
     <section

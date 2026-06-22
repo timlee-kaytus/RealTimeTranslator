@@ -29,6 +29,7 @@ import {
   CAPTION_IDLE_COMMIT_MS,
   getCaptionDisplayFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
+import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import { createMockPresentationEvent } from "@/lib/mock/mockRealtimeEvents";
 import {
   loadFloatingCaptionSettings,
@@ -937,9 +938,17 @@ function createPresentationCaption(
     sessionId,
     output: {
       language,
-      text,
+      text: normalizeCaptionText(text, language),
     },
-    secondaryOutput,
+    secondaryOutput: secondaryOutput
+      ? {
+          language: secondaryOutput.language,
+          text: normalizeCaptionText(
+            secondaryOutput.text,
+            secondaryOutput.language,
+          ),
+        }
+      : undefined,
     isFinal,
     timestamp: new Date().toISOString(),
   };

@@ -64,7 +64,7 @@ function CaptionPreviewLine({
   fontSize,
 }: CaptionPreviewLineProps) {
   const empty = text.length === 0;
-  const displayText = empty ? "" : formatCaptionParagraphSpacing(text);
+  const displayText = empty ? "" : formatCaptionParagraphSpacing(text, language);
 
   return (
     <div className="flex min-h-0 items-center justify-center overflow-hidden">

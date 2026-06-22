@@ -8,7 +8,7 @@ type SubtitleTextProps = {
 };
 
 export function SubtitleText({ text, language, fontSize }: SubtitleTextProps) {
-  const displayText = text ? formatCaptionParagraphSpacing(text) : "";
+  const displayText = text ? formatCaptionParagraphSpacing(text, language) : "";
 
   return (
     <p

@@ -82,7 +82,7 @@ export function FloatingCaptionLauncher({
 
     if (textElement) {
       textElement.textContent = text
-        ? formatCaptionParagraphSpacing(text)
+        ? formatCaptionParagraphSpacing(text, language)
         : "자막 대기 중";
       textElement.lang = language;
       textElement.style.fontSize = `${fontSize}px`;
@@ -90,7 +90,10 @@ export function FloatingCaptionLauncher({
 
     if (secondaryTextElement) {
       secondaryTextElement.textContent = secondaryText
-        ? formatCaptionParagraphSpacing(secondaryText)
+        ? formatCaptionParagraphSpacing(
+            secondaryText,
+            secondaryLanguage ?? undefined,
+          )
         : "자막 대기 중";
       secondaryTextElement.lang = secondaryLanguage ?? "";
       secondaryTextElement.style.display =

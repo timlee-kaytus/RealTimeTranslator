@@ -3,8 +3,11 @@ import {
   estimateCaptionLineCount,
   getCaptionWeightedLength,
 } from "@/lib/caption/captionDisplayPolicy";
+import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type { TranslationMode } from "@/lib/types/realtime";
+
+export { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 
 type SplitCaptionTextOptions = {
   mode: TranslationMode;
@@ -29,7 +32,7 @@ export function splitCaptionText({
   language,
   text,
 }: SplitCaptionTextOptions): string[] {
-  const normalizedText = normalizeCaptionText(text);
+  const normalizedText = normalizeSegmentInputText(text);
 
   if (!normalizedText) {
     return [];
@@ -40,7 +43,7 @@ export function splitCaptionText({
   );
 }
 
-export function normalizeCaptionText(text: string): string {
+function normalizeSegmentInputText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
@@ -50,8 +53,11 @@ export function hasTerminalPunctuation(text: string): boolean {
   return lastCharacter ? terminalPunctuation.has(lastCharacter) : false;
 }
 
-export function formatCaptionParagraphSpacing(text: string): string {
-  return text
+export function formatCaptionParagraphSpacing(
+  text: string,
+  language?: SupportedLanguage,
+): string {
+  return normalizeCaptionText(text, language)
     .replace(/([!?。？！])\s*(?=\S)/gu, `$1${CAPTION_PARAGRAPH_SEPARATOR}`)
     .replace(
       /\.\s*(?=[A-Z가-힣\u4E00-\u9FFF"“‘'([<{])/gu,

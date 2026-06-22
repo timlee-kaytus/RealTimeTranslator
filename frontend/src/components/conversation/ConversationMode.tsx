@@ -26,6 +26,7 @@ import {
   CAPTION_IDLE_COMMIT_MS,
   getCaptionDisplayFontSize,
 } from "@/lib/caption/captionDisplayPolicy";
+import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import { ConversationTurnBuffer } from "@/lib/conversation/conversationTurnBuffer";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
 import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
@@ -883,11 +884,11 @@ function createConversationCaption({
     detectedLanguage,
     top: {
       language: topLanguage,
-      text: topText,
+      text: normalizeCaptionText(topText, topLanguage),
     },
     bottom: {
       language: bottomLanguage,
-      text: bottomText,
+      text: normalizeCaptionText(bottomText, bottomLanguage),
     },
     isFinal,
     timestamp: new Date().toISOString(),
