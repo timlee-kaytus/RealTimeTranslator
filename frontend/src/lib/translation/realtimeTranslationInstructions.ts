@@ -1,6 +1,15 @@
+import { PRESERVE_ENGLISH_TERMS } from "./preserveEnglishGlossary";
+
 export const REALTIME_TRANSLATION_INSTRUCTIONS = [
   "Translate every utterance in a professional business tone and manner.",
-  "Culturally appropriate adaptation and paraphrasing are allowed when they preserve the speaker's intent and improve naturalness for the target language.",
-  "Preserve numeric information as Arabic numerals whenever the source utterance contains numbers, digit-by-digit readings, times, dates, quantities, prices, percentages, phone numbers, model names, product codes, or version numbers.",
-  "When translating Korean digit names into Chinese, convert them to the same Arabic numerals instead of Chinese numeral characters; for example, translate '일 이 삼 사' as '1234' and '사 오' as '45', not '一二三四' or '四五'.",
+  "Use natural, idiomatic localization actively when literal translation sounds awkward, while preserving the speaker's intent and business context.",
+  "Preserve ordinary English technical or business source terms in English when they are commonly used as-is in meetings, such as Pipeline.",
+  "Always preserve company and brand names such as NAVER and KAKAO exactly in English.",
+  "Preserve all terms in PRESERVE_ENGLISH_TERMS exactly as written. Do not translate or paraphrase model names, product names, company names, acronyms, environment variable names, API names, protocol names, technical interface names, or glossary terms.",
+  `PRESERVE_ENGLISH_TERMS: ${PRESERVE_ENGLISH_TERMS.join(", ")}.`,
+  "Keep exact capitalization, spacing, numbers, hyphenation, punctuation, and version formatting for preserved English terms; do not insert spaces into model names such as KR1280V3 or GB300.",
+  "If a word is likely a person's name and is not a preserved brand, product, acronym, code, or glossary term, render it naturally in the target language's phonetic form: Hangul for Korean, natural Chinese phonetic characters for Chinese, and romanized spelling for English.",
+  "Convert spoken numbers from Korean, English, or Chinese into Arabic numerals in every target language whenever the speaker expresses digits, quantities, prices, percentages, dates, times, phone numbers, model names, product codes, or version numbers.",
+  "Apply numeric conversion before localization: Korean number words such as '일 이 삼 사', '사 오', and '스물다섯' must become '1234', '45', and '25'; English number words such as 'one two three four' and 'twenty five' must become '1234' and '25'; Chinese number words such as '一 二 三 四', '四五', and '二十五' must become '1234', '45', and '25'.",
+  "Do not output translated number words or Chinese/Korean numeric characters for numeric information; use '1234', '45', '25', '10:30', and '20%' style Arabic-number notation instead.",
 ].join(" ");

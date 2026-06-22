@@ -29,7 +29,7 @@ Conversation mode:
   "targetLanguages": ["zh", "ko"],
   "clientId": "anonymous-or-user-id",
   "uiSessionId": "uuid-from-frontend",
-  "translationInstructions": "Translate every utterance in a professional business tone and manner. Culturally appropriate adaptation and paraphrasing are allowed when they preserve the speaker's intent and improve naturalness for the target language. Preserve numeric information as Arabic numerals whenever the source utterance contains numbers, digit-by-digit readings, times, dates, quantities, prices, percentages, phone numbers, model names, product codes, or version numbers. When translating Korean digit names into Chinese, convert them to the same Arabic numerals instead of Chinese numeral characters; for example, translate '일 이 삼 사' as '1234' and '사 오' as '45', not '一二三四' or '四五'."
+  "translationInstructions": "Translate every utterance in a professional business tone and manner. Use natural, idiomatic localization actively when literal translation sounds awkward. Preserve ordinary English technical or business source terms in English when they are commonly used as-is in meetings, such as Pipeline. Always preserve company and brand names such as NAVER and KAKAO exactly in English. Preserve all terms in PRESERVE_ENGLISH_TERMS exactly as written. If a word is likely a person's name and is not a preserved brand, product, acronym, code, or glossary term, render it naturally in the target language's phonetic form. Convert spoken numbers from Korean, English, or Chinese into Arabic numerals in every target language; for example, '일 이 삼 사', 'one two three four', and '一 二 三 四' should output as '1234'."
 }
 ```
 
@@ -41,13 +41,18 @@ Presentation mode:
   "targetLanguages": ["en"],
   "clientId": "anonymous-or-user-id",
   "uiSessionId": "uuid-from-frontend",
-  "translationInstructions": "Translate every utterance in a professional business tone and manner. Culturally appropriate adaptation and paraphrasing are allowed when they preserve the speaker's intent and improve naturalness for the target language. Preserve numeric information as Arabic numerals whenever the source utterance contains numbers, digit-by-digit readings, times, dates, quantities, prices, percentages, phone numbers, model names, product codes, or version numbers. When translating Korean digit names into Chinese, convert them to the same Arabic numerals instead of Chinese numeral characters; for example, translate '일 이 삼 사' as '1234' and '사 오' as '45', not '一二三四' or '四五'."
+  "translationInstructions": "Translate every utterance in a professional business tone and manner. Use natural, idiomatic localization actively when literal translation sounds awkward. Preserve ordinary English technical or business source terms in English when they are commonly used as-is in meetings, such as Pipeline. Always preserve company and brand names such as NAVER and KAKAO exactly in English. Preserve all terms in PRESERVE_ENGLISH_TERMS exactly as written. If a word is likely a person's name and is not a preserved brand, product, acronym, code, or glossary term, render it naturally in the target language's phonetic form. Convert spoken numbers from Korean, English, or Chinese into Arabic numerals in every target language; for example, '일 이 삼 사', 'one two three four', and '一 二 三 四' should output as '1234'."
 }
 ```
 
 `translationInstructions` is an optional policy string for the backend to apply
 when creating realtime translation sessions. It must not include source text,
 translated text, or any user transcript content.
+
+The frontend expands `PRESERVE_ENGLISH_TERMS` from
+`frontend/src/lib/translation/preserveEnglishGlossary.ts` before sending the
+session request. Backend implementations should pass this policy through to the
+Realtime provider without logging source text or translated text.
 
 Response:
 
