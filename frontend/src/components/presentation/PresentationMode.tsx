@@ -683,7 +683,9 @@ export function PresentationMode() {
   }
 
   function handleSourceTranscriptDelta(delta: string) {
-    if (!delta.trim()) {
+    const sanitizedDelta = sanitizeSourceTranscriptText(delta);
+
+    if (!sanitizedDelta.trim()) {
       return;
     }
 
@@ -695,7 +697,7 @@ export function PresentationMode() {
     }
 
     const detectedLanguage = detectSupportedLanguage(
-      `${sourceRawTranscriptRef.current}${delta}`,
+      `${sourceRawTranscriptRef.current}${sanitizedDelta}`,
     );
     const appendLanguage =
       detectedLanguage === "unknown"
@@ -703,7 +705,7 @@ export function PresentationMode() {
         : detectedLanguage;
     const nextRawText = appendPresentationTranscriptText(
       sourceRawTranscriptRef.current,
-      delta,
+      sanitizedDelta,
       appendLanguage,
     );
 
@@ -712,7 +714,10 @@ export function PresentationMode() {
   }
 
   function handleSourceTranscriptFinal(text: string) {
-    const finalText = text.trim() ? text : sourceRawTranscriptRef.current;
+    const sanitizedText = sanitizeSourceTranscriptText(text);
+    const finalText = sanitizedText.trim()
+      ? sanitizedText
+      : sourceRawTranscriptRef.current;
 
     if (!finalText.trim()) {
       return;
@@ -723,9 +728,18 @@ export function PresentationMode() {
   }
 
   function applySourceTranscriptText(text: string, isFinal: boolean) {
-    sourceRawTranscriptRef.current = text;
+    const sanitizedText = sanitizeSourceTranscriptText(text);
 
-    const detectedLanguage = detectSupportedLanguage(text);
+    if (!sanitizedText.trim()) {
+      sourceRawTranscriptRef.current = "";
+      sourceCaptionStateRef.current = createEmptySourceCaptionState();
+      syncPresentationCaption(isFinal);
+      return;
+    }
+
+    sourceRawTranscriptRef.current = sanitizedText;
+
+    const detectedLanguage = detectSupportedLanguage(sanitizedText);
     const nextDetectedLanguage =
       detectedLanguage === "unknown"
         ? sourceCaptionStateRef.current.detectedLanguage
@@ -740,8 +754,8 @@ export function PresentationMode() {
     }
 
     const displayState = isFinal
-      ? sourceCaptionBufferRef.current.replaceWithFinalText(text)
-      : sourceCaptionBufferRef.current.replaceCurrentText(text);
+      ? sourceCaptionBufferRef.current.replaceWithFinalText(sanitizedText)
+      : sourceCaptionBufferRef.current.replaceCurrentText(sanitizedText);
 
     sourceCaptionStateRef.current = {
       detectedLanguage: nextDetectedLanguage,
@@ -805,10 +819,10 @@ export function PresentationMode() {
 
     if (
       sourceCaption.detectedLanguage === language &&
-      sourceCaption.text.trim()
+      sanitizeSourceTranscriptText(sourceCaption.text).trim()
     ) {
       return {
-        text: sourceCaption.text,
+        text: sanitizeSourceTranscriptText(sourceCaption.text),
         isFinal: sourceCaption.isFinal,
       };
     }
@@ -836,10 +850,13 @@ export function PresentationMode() {
       }
 
       const displayState = sourceCaptionBufferRef.current.commitCurrentBlock();
+      const sanitizedText = sanitizeSourceTranscriptText(
+        displayState.currentBlock.text,
+      );
 
       sourceCaptionStateRef.current = {
         ...sourceCaptionStateRef.current,
-        text: displayState.currentBlock.text,
+        text: sanitizedText,
         isFinal: true,
       };
       syncPresentationCaption(true);
@@ -1143,13 +1160,20 @@ function appendPresentationTranscriptText(
   language: DetectedSupportedLanguage,
 ): string {
   void language;
-  const normalizedDelta = delta.replace(/\s+/g, " ");
+  const normalizedDelta = sanitizeSourceTranscriptText(delta).replace(
+    /\s+/g,
+    " ",
+  );
 
   if (!currentText) {
     return normalizedDelta.trimStart();
   }
 
   return `${currentText}${normalizedDelta}`.replace(/\s+/g, " ");
+}
+
+function sanitizeSourceTranscriptText(text: string): string {
+  return text.replace(/\uFFFD+/g, "").replace(/\s+/g, " ");
 }
 
 function createPresentationCaption(

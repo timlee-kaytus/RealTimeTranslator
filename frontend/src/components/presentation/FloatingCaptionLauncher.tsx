@@ -223,13 +223,6 @@ function createFloatingCaptionMarkup(backgroundOpacity: number) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>실시간 번역 자막</title>
     <style>
-      @font-face {
-        font-family: "RTT Microsoft YaHei";
-        src: url("/fonts/msyh.woff2") format("woff2");
-        font-style: normal;
-        font-weight: 100 950;
-        font-display: swap;
-      }
       * { box-sizing: border-box; }
       html, body {
         width: 100%;
@@ -238,15 +231,6 @@ function createFloatingCaptionMarkup(backgroundOpacity: number) {
         background: ${backgroundColor};
         color: #ffffff;
         font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      }
-      [lang="zh"] {
-        font-family:
-          "RTT Microsoft YaHei",
-          "Microsoft YaHei",
-          "Noto Sans CJK SC",
-          "PingFang SC",
-          "Heiti SC",
-          sans-serif;
       }
       body {
         display: flex;

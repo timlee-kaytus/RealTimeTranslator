@@ -1,13 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "RTT Microsoft YaHei";
-  src: url("/fonts/msyh.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 950;
-  font-display: swap;
-}
-
 :root {
   --background: #f8f8fb;
   --foreground: #101114;
@@ -91,16 +83,6 @@ input {
   overflow-wrap: anywhere;
   word-break: keep-all;
   letter-spacing: 0;
-}
-
-[lang="zh"] {
-  font-family:
-    "RTT Microsoft YaHei",
-    "Microsoft YaHei",
-    "Noto Sans CJK SC",
-    "PingFang SC",
-    "Heiti SC",
-    sans-serif;
 }
 
 .rtt-card {
