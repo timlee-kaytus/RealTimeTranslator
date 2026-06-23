@@ -683,9 +683,7 @@ export function PresentationMode() {
   }
 
   function handleSourceTranscriptDelta(delta: string) {
-    const sanitizedDelta = sanitizeSourceTranscriptText(delta);
-
-    if (!sanitizedDelta.trim()) {
+    if (!delta.trim()) {
       return;
     }
 
@@ -697,7 +695,7 @@ export function PresentationMode() {
     }
 
     const detectedLanguage = detectSupportedLanguage(
-      `${sourceRawTranscriptRef.current}${sanitizedDelta}`,
+      sanitizeSourceTranscriptText(`${sourceRawTranscriptRef.current}${delta}`),
     );
     const appendLanguage =
       detectedLanguage === "unknown"
@@ -705,7 +703,7 @@ export function PresentationMode() {
         : detectedLanguage;
     const nextRawText = appendPresentationTranscriptText(
       sourceRawTranscriptRef.current,
-      sanitizedDelta,
+      delta,
       appendLanguage,
     );
 
@@ -714,12 +712,9 @@ export function PresentationMode() {
   }
 
   function handleSourceTranscriptFinal(text: string) {
-    const sanitizedText = sanitizeSourceTranscriptText(text);
-    const finalText = sanitizedText.trim()
-      ? sanitizedText
-      : sourceRawTranscriptRef.current;
+    const finalText = text.trim() ? text : sourceRawTranscriptRef.current;
 
-    if (!finalText.trim()) {
+    if (!sanitizeSourceTranscriptText(finalText).trim()) {
       return;
     }
 
@@ -728,18 +723,20 @@ export function PresentationMode() {
   }
 
   function applySourceTranscriptText(text: string, isFinal: boolean) {
-    const sanitizedText = sanitizeSourceTranscriptText(text);
+    sourceRawTranscriptRef.current = text;
+    const displayText = sanitizeSourceTranscriptText(text);
 
-    if (!sanitizedText.trim()) {
-      sourceRawTranscriptRef.current = "";
-      sourceCaptionStateRef.current = createEmptySourceCaptionState();
+    if (!displayText.trim()) {
+      sourceCaptionStateRef.current = {
+        ...sourceCaptionStateRef.current,
+        text: "",
+        isFinal,
+      };
       syncPresentationCaption(isFinal);
       return;
     }
 
-    sourceRawTranscriptRef.current = sanitizedText;
-
-    const detectedLanguage = detectSupportedLanguage(sanitizedText);
+    const detectedLanguage = detectSupportedLanguage(displayText);
     const nextDetectedLanguage =
       detectedLanguage === "unknown"
         ? sourceCaptionStateRef.current.detectedLanguage
@@ -754,8 +751,8 @@ export function PresentationMode() {
     }
 
     const displayState = isFinal
-      ? sourceCaptionBufferRef.current.replaceWithFinalText(sanitizedText)
-      : sourceCaptionBufferRef.current.replaceCurrentText(sanitizedText);
+      ? sourceCaptionBufferRef.current.replaceWithFinalText(displayText)
+      : sourceCaptionBufferRef.current.replaceCurrentText(displayText);
 
     sourceCaptionStateRef.current = {
       detectedLanguage: nextDetectedLanguage,
@@ -1160,10 +1157,7 @@ function appendPresentationTranscriptText(
   language: DetectedSupportedLanguage,
 ): string {
   void language;
-  const normalizedDelta = sanitizeSourceTranscriptText(delta).replace(
-    /\s+/g,
-    " ",
-  );
+  const normalizedDelta = delta.replace(/\s+/g, " ");
 
   if (!currentText) {
     return normalizedDelta.trimStart();
