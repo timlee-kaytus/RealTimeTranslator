@@ -66,7 +66,7 @@ export function CaptionSizeControls({
           type="range"
           min={FLOATING_CAPTION_FONT_SIZE_MIN}
           max={FLOATING_CAPTION_FONT_SIZE_MAX}
-          step={2}
+          step={1}
           value={clampFontSize(settings.fontSize)}
           onChange={(event) =>
             onSettingsChange((current) => ({

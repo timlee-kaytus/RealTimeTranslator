@@ -8,7 +8,7 @@ export type FloatingCaptionSettings = {
   backgroundOpacity: number;
 };
 
-export const FLOATING_CAPTION_FONT_SIZE_MIN = 14;
+export const FLOATING_CAPTION_FONT_SIZE_MIN = 1;
 export const FLOATING_CAPTION_FONT_SIZE_MAX = 88;
 
 export const FLOATING_CAPTION_PRESETS: Record<

@@ -162,8 +162,8 @@ export function FloatingCaptionLauncher({
     const handleResize = () => {
       onSettingsChange((current) => ({
         ...current,
-        width: Math.max(360, Math.round(pipWindow.outerWidth)),
-        height: Math.max(120, Math.round(pipWindow.outerHeight)),
+        width: Math.round(pipWindow.outerWidth),
+        height: Math.round(pipWindow.outerHeight),
       }));
     };
 
