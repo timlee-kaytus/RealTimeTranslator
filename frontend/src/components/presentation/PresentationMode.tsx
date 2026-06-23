@@ -606,6 +606,7 @@ export function PresentationMode() {
       sourceStream: mediaStream,
       clientSecret: realtimeSession.clientSecret,
       stopSourceTracksOnClose: false,
+      enableInputTranscription: captureSourceTranscript,
       onStatusChange: (nextStatus) => {
         handlePresentationSessionStatusChange(role, nextStatus);
       },

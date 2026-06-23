@@ -116,7 +116,7 @@ export async function connectOpenAIRealtimeTranslation({
   sourceStream,
   clientSecret,
   enableInputTranscription = false,
-  inputTranscriptionModel = "gpt-realtime-whisper",
+  inputTranscriptionModel = "gpt-4o-mini-transcribe",
   stopSourceTracksOnClose = true,
   onStatusChange,
   onInputTranscriptDelta,
