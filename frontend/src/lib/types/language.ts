@@ -15,9 +15,9 @@ export const LANGUAGE_SELECT_LABELS: Record<SupportedLanguage, string> = {
 };
 
 export const LANGUAGE_FLAG_LABELS: Record<SupportedLanguage, string> = {
-  ko: "🇰🇷",
-  en: "🇺🇸",
-  zh: "🇨🇳",
+  ko: "KR",
+  en: "EN",
+  zh: "ZH",
 };
 
 export const DETECTED_LANGUAGE_PLACEHOLDERS: Record<

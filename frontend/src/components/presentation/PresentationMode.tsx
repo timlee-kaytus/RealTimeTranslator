@@ -1142,43 +1142,14 @@ function appendPresentationTranscriptText(
   delta: string,
   language: DetectedSupportedLanguage,
 ): string {
+  void language;
   const normalizedDelta = delta.replace(/\s+/g, " ");
 
   if (!currentText) {
     return normalizedDelta.trimStart();
   }
 
-  if (
-    /\s$/u.test(currentText) ||
-    /^\s/u.test(normalizedDelta) ||
-    /^[,.;:!?，。！？；：%)]/u.test(normalizedDelta)
-  ) {
-    return `${currentText}${normalizedDelta}`.replace(/\s+/g, " ");
-  }
-
-  if (
-    language !== "zh" &&
-    shouldSeparateTranscriptFragments(currentText, normalizedDelta)
-  ) {
-    return `${currentText} ${normalizedDelta}`.replace(/\s+/g, " ");
-  }
-
   return `${currentText}${normalizedDelta}`.replace(/\s+/g, " ");
-}
-
-function shouldSeparateTranscriptFragments(
-  currentText: string,
-  delta: string,
-): boolean {
-  const previousCharacter = Array.from(currentText.trimEnd()).at(-1);
-  const nextCharacter = Array.from(delta.trimStart()).at(0);
-
-  return Boolean(
-    previousCharacter &&
-      nextCharacter &&
-      /[A-Za-z0-9가-힣]/u.test(previousCharacter) &&
-      /[A-Za-z0-9가-힣]/u.test(nextCharacter),
-  );
 }
 
 function createPresentationCaption(
