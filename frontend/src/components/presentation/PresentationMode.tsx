@@ -949,51 +949,64 @@ function PresentationOutputLanguageSelect({
   onSecondaryChange,
 }: PresentationOutputLanguageSelectProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#686b82]">
-      <span className="whitespace-nowrap">출력 언어</span>
-      <select
-        id="presentation-output-language-primary"
-        value={primaryLanguage}
-        aria-label={`첫번째 출력 언어 ${LANGUAGE_LABELS[primaryLanguage]}`}
-        onChange={(event) =>
-          onPrimaryChange(event.target.value as SupportedLanguage)
-        }
-        className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[#686b82]">
+      <label
+        htmlFor="presentation-output-language-primary"
+        className="flex items-center gap-2 whitespace-nowrap"
       >
-        {SUPPORTED_LANGUAGES.map((language) => (
-          <option
-            key={language}
-            value={language}
-            aria-label={LANGUAGE_SELECT_LABELS[language]}
-          >
-            {LANGUAGE_FLAG_LABELS[language]}
-          </option>
-        ))}
-      </select>
-      <select
-        id="presentation-output-language-secondary"
-        value={secondaryLanguage}
-        aria-label={
-          secondaryLanguage === "none"
-            ? "두번째 출력 언어 없음(无)"
-            : `두번째 출력 언어 ${LANGUAGE_LABELS[secondaryLanguage]}`
-        }
-        onChange={(event) =>
-          onSecondaryChange(event.target.value as PresentationSecondaryLanguage)
-        }
-        className="rtt-select h-10 w-24 px-2 text-center text-base font-semibold"
+        <span>출력언어1(输出语言1)</span>
+        <select
+          id="presentation-output-language-primary"
+          value={primaryLanguage}
+          aria-label={`출력언어1 ${LANGUAGE_LABELS[primaryLanguage]}`}
+          onChange={(event) =>
+            onPrimaryChange(event.target.value as SupportedLanguage)
+          }
+          className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
+        >
+          {SUPPORTED_LANGUAGES.map((language) => (
+            <option
+              key={language}
+              value={language}
+              aria-label={LANGUAGE_SELECT_LABELS[language]}
+            >
+              {LANGUAGE_FLAG_LABELS[language]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label
+        htmlFor="presentation-output-language-secondary"
+        className="flex items-center gap-2 whitespace-nowrap"
       >
-        <option value="none">없음(无)</option>
-        {SUPPORTED_LANGUAGES.map((language) => (
-          <option
-            key={language}
-            value={language}
-            aria-label={LANGUAGE_SELECT_LABELS[language]}
-          >
-            {LANGUAGE_FLAG_LABELS[language]}
-          </option>
-        ))}
-      </select>
+        <span>출력언어2(输出语言2)</span>
+        <select
+          id="presentation-output-language-secondary"
+          value={secondaryLanguage}
+          aria-label={
+            secondaryLanguage === "none"
+              ? "출력언어2 없음(无)"
+              : `출력언어2 ${LANGUAGE_LABELS[secondaryLanguage]}`
+          }
+          onChange={(event) =>
+            onSecondaryChange(
+              event.target.value as PresentationSecondaryLanguage,
+            )
+          }
+          className="rtt-select h-10 w-24 px-2 text-center text-base font-semibold"
+        >
+          <option value="none">없음(无)</option>
+          {SUPPORTED_LANGUAGES.map((language) => (
+            <option
+              key={language}
+              value={language}
+              aria-label={LANGUAGE_SELECT_LABELS[language]}
+            >
+              {LANGUAGE_FLAG_LABELS[language]}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
