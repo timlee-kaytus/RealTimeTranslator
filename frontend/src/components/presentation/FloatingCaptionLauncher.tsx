@@ -1,14 +1,18 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { PictureInPicture2 } from "lucide-react";
 
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNotice";
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
-import type { SupportedLanguage } from "@/lib/types/language";
+import {
+  LANGUAGE_FLAG_LABELS,
+  LANGUAGE_LABELS,
+  type SupportedLanguage,
+} from "@/lib/types/language";
 import type { FloatingCaptionSettings } from "@/lib/types/settings";
 import { getPresentationSupport } from "@/lib/browser/featureDetection";
 
@@ -22,6 +26,14 @@ type FloatingCaptionLauncherProps = {
   secondaryFontSize?: number;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
 };
+type FloatingCaptionRole = "primary" | "secondary";
+type FloatingCaptionLine = {
+  id: string;
+  text: string;
+};
+type FloatingCaptionHistory = Record<FloatingCaptionRole, FloatingCaptionLine[]>;
+
+const FLOATING_CAPTION_HISTORY_LIMIT = 16;
 
 export function FloatingCaptionLauncher({
   text,
@@ -36,6 +48,17 @@ export function FloatingCaptionLauncher({
   const support = useMemo(() => getPresentationSupport(), []);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const captionHistoryRef = useRef<FloatingCaptionHistory>(
+    createEmptyFloatingCaptionHistory(),
+  );
+  const captionLineIndexRef = useRef(0);
+  const previousLanguagesRef = useRef<{
+    primary: SupportedLanguage;
+    secondary: SupportedLanguage | null;
+  }>({
+    primary: language,
+    secondary: secondaryLanguage,
+  });
 
   async function openFloatingCaption() {
     if (!window.documentPictureInPicture?.requestWindow) {
@@ -52,13 +75,17 @@ export function FloatingCaptionLauncher({
 
       nextWindow.document.open();
       nextWindow.document.write(
-        createFloatingCaptionMarkup(
-          fontSize,
-          secondaryFontSize ?? fontSize,
-          settings.backgroundOpacity,
-        ),
+        createFloatingCaptionMarkup(settings.backgroundOpacity),
       );
       nextWindow.document.close();
+      syncFloatingCaptionDocument({
+        document: nextWindow.document,
+        history: captionHistoryRef.current,
+        primaryLanguage: language,
+        secondaryLanguage,
+        fontSize,
+        secondaryFontSize: secondaryFontSize ?? fontSize,
+      });
       setPipWindow(nextWindow);
     } catch (error) {
       setErrorMessage(
@@ -75,31 +102,41 @@ export function FloatingCaptionLauncher({
     }
 
     const document = pipWindow.document;
-    const textElement = document.getElementById("caption-text");
-    const secondaryTextElement = document.getElementById(
-      "caption-text-secondary",
-    );
+    resetFloatingCaptionHistoryOnLanguageChange({
+      history: captionHistoryRef.current,
+      previousLanguages: previousLanguagesRef.current,
+      primaryLanguage: language,
+      secondaryLanguage,
+    });
+    syncFloatingCaptionHistory({
+      history: captionHistoryRef.current,
+      role: "primary",
+      text,
+      language,
+      nextLineId: () => {
+        captionLineIndexRef.current += 1;
+        return `primary-${captionLineIndexRef.current}`;
+      },
+    });
+    syncFloatingCaptionHistory({
+      history: captionHistoryRef.current,
+      role: "secondary",
+      text: secondaryText,
+      language: secondaryLanguage,
+      nextLineId: () => {
+        captionLineIndexRef.current += 1;
+        return `secondary-${captionLineIndexRef.current}`;
+      },
+    });
 
-    if (textElement) {
-      textElement.textContent = text
-        ? formatCaptionParagraphSpacing(text, language)
-        : "자막 대기 중";
-      textElement.lang = language;
-      textElement.style.fontSize = `${fontSize}px`;
-    }
-
-    if (secondaryTextElement) {
-      secondaryTextElement.textContent = secondaryText
-        ? formatCaptionParagraphSpacing(
-            secondaryText,
-            secondaryLanguage ?? undefined,
-          )
-        : "자막 대기 중";
-      secondaryTextElement.lang = secondaryLanguage ?? "";
-      secondaryTextElement.style.display =
-        secondaryLanguage === null ? "none" : "-webkit-box";
-      secondaryTextElement.style.fontSize = `${secondaryFontSize ?? fontSize}px`;
-    }
+    syncFloatingCaptionDocument({
+      document,
+      history: captionHistoryRef.current,
+      primaryLanguage: language,
+      secondaryLanguage,
+      fontSize,
+      secondaryFontSize: secondaryFontSize ?? fontSize,
+    });
 
     applyFloatingCaptionBackground(
       document,
@@ -168,11 +205,7 @@ export function FloatingCaptionLauncher({
   );
 }
 
-function createFloatingCaptionMarkup(
-  fontSize: number,
-  secondaryFontSize: number,
-  backgroundOpacity: number,
-) {
+function createFloatingCaptionMarkup(backgroundOpacity: number) {
   const backgroundColor = createFloatingBackgroundColor(backgroundOpacity);
 
   return `<!doctype html>
@@ -198,50 +231,283 @@ function createFloatingCaptionMarkup(
       .caption-area {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         width: 100%;
         height: 100%;
-        align-items: center;
-        justify-content: center;
-        padding: 16px 22px;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 14px;
       }
-      #caption-text {
-        max-width: 100%;
-        margin: 0;
-        overflow-wrap: anywhere;
-        text-align: center;
-        font-size: ${fontSize}px;
-        font-weight: 950;
-        line-height: 1.14;
-        text-shadow:
-          0 2px 8px rgba(0, 0, 0, 0.95),
-          0 0 18px rgba(0, 0, 0, 0.8);
+      .caption-box {
+        display: flex;
+        flex: 1 1 0;
+        min-height: 0;
+        flex-direction: column;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.28);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
+        padding: 12px 14px;
       }
-      #caption-text-secondary {
+      .caption-box[hidden] {
         display: none;
+      }
+      .caption-label {
+        flex: 0 0 auto;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        font-weight: 850;
+        line-height: 1;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+      .caption-list {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 9px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .caption-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .caption-list::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.24);
+      }
+      .caption-line {
         max-width: 100%;
         margin: 0;
         overflow-wrap: anywhere;
-        text-align: center;
-        font-size: ${secondaryFontSize}px;
+        text-align: left;
         font-weight: 950;
-        line-height: 1.14;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
+        line-height: 1.18;
         text-shadow:
           0 2px 8px rgba(0, 0, 0, 0.95),
           0 0 18px rgba(0, 0, 0, 0.8);
+      }
+      .caption-line:first-child {
+        color: #ffffff;
+      }
+      .caption-line:not(:first-child) {
+        color: rgba(255, 255, 255, 0.78);
+      }
+      .caption-empty {
+        margin: auto 0;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 18px;
+        font-weight: 800;
+        text-align: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.82);
       }
     </style>
   </head>
   <body>
     <main class="caption-area">
-      <p id="caption-text">자막 대기 중</p>
-      <p id="caption-text-secondary"></p>
+      <section id="caption-box-primary" class="caption-box">
+        <div id="caption-label-primary" class="caption-label"></div>
+        <div id="caption-list-primary" class="caption-list"></div>
+      </section>
+      <section id="caption-box-secondary" class="caption-box" hidden>
+        <div id="caption-label-secondary" class="caption-label"></div>
+        <div id="caption-list-secondary" class="caption-list"></div>
+      </section>
     </main>
   </body>
 </html>`;
+}
+
+function createEmptyFloatingCaptionHistory(): FloatingCaptionHistory {
+  return {
+    primary: [],
+    secondary: [],
+  };
+}
+
+function resetFloatingCaptionHistoryOnLanguageChange({
+  history,
+  previousLanguages,
+  primaryLanguage,
+  secondaryLanguage,
+}: {
+  history: FloatingCaptionHistory;
+  previousLanguages: {
+    primary: SupportedLanguage;
+    secondary: SupportedLanguage | null;
+  };
+  primaryLanguage: SupportedLanguage;
+  secondaryLanguage: SupportedLanguage | null;
+}) {
+  if (previousLanguages.primary !== primaryLanguage) {
+    history.primary = [];
+    previousLanguages.primary = primaryLanguage;
+  }
+
+  if (previousLanguages.secondary !== secondaryLanguage) {
+    history.secondary = [];
+    previousLanguages.secondary = secondaryLanguage;
+  }
+
+  if (secondaryLanguage === null) {
+    history.secondary = [];
+  }
+}
+
+function syncFloatingCaptionHistory({
+  history,
+  role,
+  text,
+  language,
+  nextLineId,
+}: {
+  history: FloatingCaptionHistory;
+  role: FloatingCaptionRole;
+  text: string;
+  language: SupportedLanguage | null;
+  nextLineId: () => string;
+}) {
+  if (language === null) {
+    history[role] = [];
+    return;
+  }
+
+  const nextText = text
+    ? formatCaptionParagraphSpacing(text, language).trim()
+    : "";
+
+  if (!nextText) {
+    return;
+  }
+
+  const [latestLine] = history[role];
+
+  if (!latestLine) {
+    history[role] = [{ id: nextLineId(), text: nextText }];
+    return;
+  }
+
+  if (latestLine.text === nextText) {
+    return;
+  }
+
+  if (
+    nextText.startsWith(latestLine.text) ||
+    latestLine.text.startsWith(nextText)
+  ) {
+    history[role] = [
+      {
+        ...latestLine,
+        text: nextText,
+      },
+      ...history[role].slice(1),
+    ];
+    return;
+  }
+
+  history[role] = [
+    { id: nextLineId(), text: nextText },
+    ...history[role],
+  ].slice(0, FLOATING_CAPTION_HISTORY_LIMIT);
+}
+
+function syncFloatingCaptionDocument({
+  document,
+  history,
+  primaryLanguage,
+  secondaryLanguage,
+  fontSize,
+  secondaryFontSize,
+}: {
+  document: Document;
+  history: FloatingCaptionHistory;
+  primaryLanguage: SupportedLanguage;
+  secondaryLanguage: SupportedLanguage | null;
+  fontSize: number;
+  secondaryFontSize: number;
+}) {
+  updateFloatingCaptionBox({
+    document,
+    boxId: "caption-box-primary",
+    labelId: "caption-label-primary",
+    listId: "caption-list-primary",
+    label: `언어1 · ${LANGUAGE_FLAG_LABELS[primaryLanguage]} ${LANGUAGE_LABELS[primaryLanguage]}`,
+    language: primaryLanguage,
+    lines: history.primary,
+    fontSize,
+    visible: true,
+  });
+  updateFloatingCaptionBox({
+    document,
+    boxId: "caption-box-secondary",
+    labelId: "caption-label-secondary",
+    listId: "caption-list-secondary",
+    label:
+      secondaryLanguage === null
+        ? ""
+        : `언어2 · ${LANGUAGE_FLAG_LABELS[secondaryLanguage]} ${LANGUAGE_LABELS[secondaryLanguage]}`,
+    language: secondaryLanguage,
+    lines: history.secondary,
+    fontSize: secondaryFontSize,
+    visible: secondaryLanguage !== null,
+  });
+}
+
+function updateFloatingCaptionBox({
+  document,
+  boxId,
+  labelId,
+  listId,
+  label,
+  language,
+  lines,
+  fontSize,
+  visible,
+}: {
+  document: Document;
+  boxId: string;
+  labelId: string;
+  listId: string;
+  label: string;
+  language: SupportedLanguage | null;
+  lines: FloatingCaptionLine[];
+  fontSize: number;
+  visible: boolean;
+}) {
+  const boxElement = document.getElementById(boxId);
+  const labelElement = document.getElementById(labelId);
+  const listElement = document.getElementById(listId);
+
+  if (!boxElement || !labelElement || !listElement) {
+    return;
+  }
+
+  boxElement.toggleAttribute("hidden", !visible);
+  labelElement.textContent = label;
+  listElement.replaceChildren();
+
+  if (!visible) {
+    return;
+  }
+
+  if (lines.length === 0) {
+    const emptyElement = document.createElement("p");
+    emptyElement.className = "caption-empty";
+    emptyElement.textContent = "자막 대기 중";
+    listElement.append(emptyElement);
+    return;
+  }
+
+  lines.forEach((line) => {
+    const lineElement = document.createElement("p");
+    lineElement.className = "caption-line";
+    lineElement.dataset.lineId = line.id;
+    lineElement.lang = language ?? "";
+    lineElement.textContent = line.text;
+    lineElement.style.fontSize = `${fontSize}px`;
+    listElement.append(lineElement);
+  });
 }
 
 function applyFloatingCaptionBackground(
