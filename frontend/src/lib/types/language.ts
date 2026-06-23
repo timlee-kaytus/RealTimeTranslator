@@ -24,9 +24,9 @@ export const DETECTED_LANGUAGE_PLACEHOLDERS: Record<
   SupportedLanguage,
   string
 > = {
-  ko: "감지된 언어가 이곳에 표시됩니다.",
-  en: "Detected language will appear here.",
-  zh: "检测到的语言会显示在这里。",
+  ko: "감지된 언어가 이곳에 표기됩니다.",
+  en: "The detected language will be displayed here.",
+  zh: "检测到的语言将在此显示。",
 };
 
 export const OPENAI_LANGUAGE_CODES: Record<SupportedLanguage, string> = {

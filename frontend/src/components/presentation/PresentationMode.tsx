@@ -88,7 +88,7 @@ export function PresentationMode() {
   const [sessionId, setSessionId] = useState("mock-session");
   const sessionIdRef = useRef("mock-session");
   const [caption, setCaption] = useState<PresentationCaptionEvent>(() =>
-    createMockPresentationEvent(0, initialOutputLanguage),
+    createPresentationCaption("", initialOutputLanguage, "mock-session"),
   );
   const [settings, setSettings] = useState(DEFAULT_FLOATING_CAPTION_SETTINGS);
   const {
@@ -561,35 +561,18 @@ export function PresentationMode() {
     primaryLanguage: SupportedLanguage,
     secondaryLanguage: PresentationSecondaryLanguage,
   ) {
-    const mockCaption = createMockPresentationEvent(
-      0,
-      primaryLanguage,
-      sessionId,
-      secondaryLanguage === "none" ? undefined : secondaryLanguage,
-    );
-    const primaryDisplayState =
-      captionBuffersRef.current.primary.replaceWithFinalText(
-        mockCaption.output.text,
-      );
-    const secondaryDisplayState = mockCaption.secondaryOutput
-      ? captionBuffersRef.current.secondary.replaceWithFinalText(
-          mockCaption.secondaryOutput.text,
-        )
-      : null;
-
     setCaption(
       createPresentationCaption(
-        primaryDisplayState.currentBlock.text,
+        "",
         primaryLanguage,
         sessionId,
-        true,
-        mockCaption.secondaryOutput
-          ? {
-              language: mockCaption.secondaryOutput.language,
-              text: secondaryDisplayState?.currentBlock.text ?? "",
-            }
-          : undefined,
-        mockCaption.detectedLanguage,
+        false,
+        secondaryLanguage === "none"
+          ? undefined
+          : {
+              language: secondaryLanguage,
+              text: "",
+            },
       ),
     );
   }
