@@ -68,9 +68,17 @@ export function FloatingCaptionLauncher({
     setErrorMessage("");
 
     try {
+      const maxWidth =
+        typeof window.screen?.availWidth === "number"
+          ? window.screen.availWidth
+          : settings.width;
+      const maxHeight =
+        typeof window.screen?.availHeight === "number"
+          ? window.screen.availHeight
+          : settings.height;
       const nextWindow = await window.documentPictureInPicture.requestWindow({
-        width: settings.width,
-        height: settings.height,
+        width: Math.min(settings.width, maxWidth),
+        height: Math.min(settings.height, maxHeight),
       });
 
       nextWindow.document.open();

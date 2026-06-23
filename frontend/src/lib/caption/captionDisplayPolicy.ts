@@ -53,8 +53,9 @@ export function getCaptionDisplayFontSize({
   const estimatedLines = estimateCaptionLineCount(mode, language, text);
   const overflowingLines = Math.max(0, estimatedLines - policy.maxLines);
   const adjustedFontSize = baseFontSize - overflowingLines * 4;
+  const lowerBound = Math.min(policy.minFontSize, baseFontSize);
 
-  return Math.max(policy.minFontSize, Math.min(baseFontSize, adjustedFontSize));
+  return Math.max(lowerBound, Math.min(baseFontSize, adjustedFontSize));
 }
 
 export function getSecondaryCaptionFontSize(primaryFontSize: number): number {
