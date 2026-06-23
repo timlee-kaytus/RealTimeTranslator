@@ -35,6 +35,10 @@ import {
   loadFloatingCaptionSettings,
   saveFloatingCaptionSettings,
 } from "@/lib/storage/captionSettingsStorage";
+import {
+  detectSupportedLanguage,
+  type DetectedSupportedLanguage,
+} from "@/lib/language/detectSupportedLanguage";
 import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import {
   LANGUAGE_FLAG_LABELS,
@@ -63,6 +67,13 @@ type PresentationSecondaryLanguage = SupportedLanguage | "none";
 type PresentationSessionStatuses = Partial<
   Record<PresentationSessionRole, RealtimeConnectionStatus>
 >;
+type PresentationRoleCaptionState = {
+  text: string;
+  isFinal: boolean;
+};
+type PresentationSourceCaptionState = PresentationRoleCaptionState & {
+  detectedLanguage: DetectedSupportedLanguage;
+};
 
 export function PresentationMode() {
   const [outputLanguage, setOutputLanguage] = useState<SupportedLanguage>(
@@ -75,6 +86,7 @@ export function PresentationMode() {
     useState<ConversationActivityStatus>("stopped");
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("mock-session");
+  const sessionIdRef = useRef("mock-session");
   const [caption, setCaption] = useState<PresentationCaptionEvent>(() =>
     createMockPresentationEvent(0, initialOutputLanguage),
   );
@@ -89,6 +101,8 @@ export function PresentationMode() {
   const realtimeConnectionsRef = useRef<
     Partial<Record<PresentationSessionRole, RealtimeTranslationConnection>>
   >({});
+  const outputLanguageRef = useRef(outputLanguage);
+  const secondaryOutputLanguageRef = useRef(secondaryOutputLanguage);
   const captionBuffersRef = useRef<Record<PresentationSessionRole, CaptionBuffer>>(
     {
       primary: new CaptionBuffer({
@@ -101,9 +115,23 @@ export function PresentationMode() {
       }),
     },
   );
+  const sourceCaptionBufferRef = useRef(
+    new CaptionBuffer({
+      mode: "presentation",
+      language: initialOutputLanguage,
+    }),
+  );
+  const sourceRawTranscriptRef = useRef("");
+  const sourceCaptionStateRef = useRef<PresentationSourceCaptionState>(
+    createEmptySourceCaptionState(),
+  );
+  const translatedCaptionStateRef = useRef<
+    Record<PresentationSessionRole, PresentationRoleCaptionState>
+  >(createEmptyTranslatedCaptionState());
   const captionIdleCommitTimeoutsRef = useRef<
     Partial<Record<PresentationSessionRole, number>>
   >({});
+  const sourceCaptionIdleCommitTimeoutRef = useRef<number | null>(null);
   const sessionExpireTimeoutRef = useRef<number | null>(null);
   const sessionStatusesRef = useRef<PresentationSessionStatuses>({});
   const activeSessionIdsRef = useRef<string[]>([]);
@@ -184,9 +212,12 @@ export function PresentationMode() {
   const clearAllCaptionIdleCommits = useCallback(() => {
     clearCaptionIdleCommit("primary");
     clearCaptionIdleCommit("secondary");
+    clearTimeoutRef(sourceCaptionIdleCommitTimeoutRef);
   }, [clearCaptionIdleCommit]);
 
   useEffect(() => {
+    const sourceCaptionBuffer = sourceCaptionBufferRef.current;
+
     return () => {
       Object.values(realtimeConnectionsRef.current).forEach((connection) => {
         connection?.close();
@@ -197,6 +228,7 @@ export function PresentationMode() {
       stopMicrophoneLevel();
       clearPresentationActivityTimers();
       clearAllCaptionIdleCommits();
+      sourceCaptionBuffer.clear();
 
       if (sessionExpireTimeoutRef.current !== null) {
         window.clearTimeout(sessionExpireTimeoutRef.current);
@@ -207,6 +239,11 @@ export function PresentationMode() {
     clearPresentationActivityTimers,
     stopMicrophoneLevel,
   ]);
+
+  useEffect(() => {
+    outputLanguageRef.current = outputLanguage;
+    secondaryOutputLanguageRef.current = secondaryOutputLanguage;
+  }, [outputLanguage, secondaryOutputLanguage]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -275,8 +312,9 @@ export function PresentationMode() {
                   finalSecondaryDisplayState?.currentBlock.text ||
                   secondaryDisplayState?.currentBlock.text ||
                   "",
-              }
+            }
             : undefined,
+          mockCaption.detectedLanguage,
         ),
       );
       index += 1;
@@ -335,6 +373,7 @@ export function PresentationMode() {
         translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
       });
 
+      sessionIdRef.current = session.sessionId;
       setSessionId(session.sessionId);
       startSessionTimer();
       setCaption(
@@ -377,7 +416,12 @@ export function PresentationMode() {
 
       const connectionResults = await Promise.allSettled(
         presentationSessions.map(({ role, credential }) =>
-          connectPresentationSession(role, credential, mediaStream),
+          connectPresentationSession(
+            role,
+            credential,
+            mediaStream,
+            role === "primary",
+          ),
         ),
       );
       const failedConnection = connectionResults.find(
@@ -545,6 +589,7 @@ export function PresentationMode() {
               text: secondaryDisplayState?.currentBlock.text ?? "",
             }
           : undefined,
+        mockCaption.detectedLanguage,
       ),
     );
   }
@@ -553,6 +598,7 @@ export function PresentationMode() {
     role: PresentationSessionRole,
     realtimeSession: RealtimeSessionCredential,
     mediaStream: MediaStream,
+    captureSourceTranscript: boolean,
   ): Promise<RealtimeTranslationConnection> {
     handlePresentationSessionStatusChange(role, "connecting");
 
@@ -563,15 +609,25 @@ export function PresentationMode() {
       onStatusChange: (nextStatus) => {
         handlePresentationSessionStatusChange(role, nextStatus);
       },
+      onInputTranscriptDelta: captureSourceTranscript
+        ? (delta) => {
+            handleSourceTranscriptDelta(delta);
+          }
+        : undefined,
+      onInputTranscriptFinal: captureSourceTranscript
+        ? (text) => {
+            handleSourceTranscriptFinal(text);
+          }
+        : undefined,
       onTranscriptDelta: (delta) => {
         markActivityTranslating();
         const displayState = captionBuffersRef.current[role].appendDelta(delta);
-
-        updatePresentationCaption(
+        updateTranslatedCaptionState(
           role,
           displayState.currentBlock.text,
           displayState.currentBlock.isFinal,
         );
+        syncPresentationCaption(displayState.currentBlock.isFinal);
         scheduleCaptionIdleCommit(role);
       },
       onTranscriptFinal: (text) => {
@@ -585,7 +641,8 @@ export function PresentationMode() {
         const displayState =
           captionBuffersRef.current[role].replaceWithFinalText(text);
 
-        updatePresentationCaption(role, displayState.currentBlock.text, true);
+        updateTranslatedCaptionState(role, displayState.currentBlock.text, true);
+        syncPresentationCaption(true);
       },
       onError: (message) => {
         clearPresentationActivityTimers();
@@ -624,50 +681,138 @@ export function PresentationMode() {
     }
   }
 
-  function updatePresentationCaption(
+  function handleSourceTranscriptDelta(delta: string) {
+    if (!delta.trim()) {
+      return;
+    }
+
+    if (
+      sourceCaptionStateRef.current.isFinal &&
+      sourceRawTranscriptRef.current.trim()
+    ) {
+      resetSourceCaptionState(outputLanguageRef.current);
+    }
+
+    const detectedLanguage = detectSupportedLanguage(
+      `${sourceRawTranscriptRef.current}${delta}`,
+    );
+    const appendLanguage =
+      detectedLanguage === "unknown"
+        ? sourceCaptionStateRef.current.detectedLanguage
+        : detectedLanguage;
+    const nextRawText = appendPresentationTranscriptText(
+      sourceRawTranscriptRef.current,
+      delta,
+      appendLanguage,
+    );
+
+    applySourceTranscriptText(nextRawText, false);
+    scheduleSourceCaptionIdleCommit();
+  }
+
+  function handleSourceTranscriptFinal(text: string) {
+    const finalText = text.trim() ? text : sourceRawTranscriptRef.current;
+
+    if (!finalText.trim()) {
+      return;
+    }
+
+    clearTimeoutRef(sourceCaptionIdleCommitTimeoutRef);
+    applySourceTranscriptText(finalText, true);
+  }
+
+  function applySourceTranscriptText(text: string, isFinal: boolean) {
+    sourceRawTranscriptRef.current = text;
+
+    const detectedLanguage = detectSupportedLanguage(text);
+    const nextDetectedLanguage =
+      detectedLanguage === "unknown"
+        ? sourceCaptionStateRef.current.detectedLanguage
+        : detectedLanguage;
+
+    if (sourceCaptionStateRef.current.detectedLanguage !== nextDetectedLanguage) {
+      sourceCaptionBufferRef.current.setLanguage(
+        nextDetectedLanguage === "unknown"
+          ? outputLanguageRef.current
+          : nextDetectedLanguage,
+      );
+    }
+
+    const displayState = isFinal
+      ? sourceCaptionBufferRef.current.replaceWithFinalText(text)
+      : sourceCaptionBufferRef.current.replaceCurrentText(text);
+
+    sourceCaptionStateRef.current = {
+      detectedLanguage: nextDetectedLanguage,
+      text: displayState.currentBlock.text,
+      isFinal: isFinal || displayState.currentBlock.isFinal,
+    };
+    syncPresentationCaption(isFinal || displayState.currentBlock.isFinal);
+  }
+
+  function updateTranslatedCaptionState(
     role: PresentationSessionRole,
     text: string,
-    isFinal = false,
+    isFinal: boolean,
   ) {
-    setCaption((current) => {
-      if (role === "primary") {
-        return createPresentationCaption(
-          text,
-          current.output.language,
-          current.sessionId,
-          isFinal,
-          current.secondaryOutput,
-        );
-      }
-
-      if (!current.secondaryOutput) {
-        if (secondaryOutputLanguage === "none") {
-          return current;
-        }
-
-        return createPresentationCaption(
-          current.output.text,
-          current.output.language,
-          current.sessionId,
-          isFinal,
-          {
-            language: secondaryOutputLanguage,
-            text,
-          },
-        );
-      }
-
-      return createPresentationCaption(
-        current.output.text,
-        current.output.language,
-        current.sessionId,
+    translatedCaptionStateRef.current = {
+      ...translatedCaptionStateRef.current,
+      [role]: {
+        text,
         isFinal,
-        {
-          language: current.secondaryOutput.language,
-          text,
-        },
-      );
-    });
+      },
+    };
+  }
+
+  function syncPresentationCaption(isFinal = false) {
+    const primaryLanguage = outputLanguageRef.current;
+    const secondaryLanguage = secondaryOutputLanguageRef.current;
+    const primaryCaption = resolvePresentationRoleCaption(
+      "primary",
+      primaryLanguage,
+    );
+    const secondaryCaption =
+      secondaryLanguage === "none"
+        ? undefined
+        : {
+            language: secondaryLanguage,
+            ...resolvePresentationRoleCaption("secondary", secondaryLanguage),
+          };
+
+    setCaption(
+      createPresentationCaption(
+        primaryCaption.text,
+        primaryLanguage,
+        sessionIdRef.current,
+        isFinal || primaryCaption.isFinal || Boolean(secondaryCaption?.isFinal),
+        secondaryCaption
+          ? {
+              language: secondaryCaption.language,
+              text: secondaryCaption.text,
+            }
+          : undefined,
+        sourceCaptionStateRef.current.detectedLanguage,
+      ),
+    );
+  }
+
+  function resolvePresentationRoleCaption(
+    role: PresentationSessionRole,
+    language: SupportedLanguage,
+  ): PresentationRoleCaptionState {
+    const sourceCaption = sourceCaptionStateRef.current;
+
+    if (
+      sourceCaption.detectedLanguage === language &&
+      sourceCaption.text.trim()
+    ) {
+      return {
+        text: sourceCaption.text,
+        isFinal: sourceCaption.isFinal,
+      };
+    }
+
+    return translatedCaptionStateRef.current[role];
   }
 
   function scheduleCaptionIdleCommit(role: PresentationSessionRole) {
@@ -675,7 +820,28 @@ export function PresentationMode() {
     captionIdleCommitTimeoutsRef.current[role] = window.setTimeout(() => {
       const displayState = captionBuffersRef.current[role].commitCurrentBlock();
 
-      updatePresentationCaption(role, displayState.currentBlock.text, true);
+      updateTranslatedCaptionState(role, displayState.currentBlock.text, true);
+      syncPresentationCaption(true);
+    }, CAPTION_IDLE_COMMIT_MS);
+  }
+
+  function scheduleSourceCaptionIdleCommit() {
+    clearTimeoutRef(sourceCaptionIdleCommitTimeoutRef);
+    sourceCaptionIdleCommitTimeoutRef.current = window.setTimeout(() => {
+      sourceCaptionIdleCommitTimeoutRef.current = null;
+
+      if (!sourceRawTranscriptRef.current.trim()) {
+        return;
+      }
+
+      const displayState = sourceCaptionBufferRef.current.commitCurrentBlock();
+
+      sourceCaptionStateRef.current = {
+        ...sourceCaptionStateRef.current,
+        text: displayState.currentBlock.text,
+        isFinal: true,
+      };
+      syncPresentationCaption(true);
     }, CAPTION_IDLE_COMMIT_MS);
   }
 
@@ -686,10 +852,18 @@ export function PresentationMode() {
     clearAllCaptionIdleCommits();
     captionBuffersRef.current.primary.setLanguage(primaryLanguage);
     captionBuffersRef.current.secondary.clear();
+    resetSourceCaptionState(primaryLanguage);
+    translatedCaptionStateRef.current = createEmptyTranslatedCaptionState();
 
     if (secondaryLanguage !== "none") {
       captionBuffersRef.current.secondary.setLanguage(secondaryLanguage);
     }
+  }
+
+  function resetSourceCaptionState(language: SupportedLanguage) {
+    sourceRawTranscriptRef.current = "";
+    sourceCaptionStateRef.current = createEmptySourceCaptionState();
+    sourceCaptionBufferRef.current.setLanguage(language);
   }
 
   function resetPresentationState(nextStatus: RealtimeConnectionStatus) {
@@ -925,17 +1099,87 @@ function clearTimeoutRef(timeoutRef: TimeoutRef) {
   timeoutRef.current = null;
 }
 
+function createEmptySourceCaptionState(): PresentationSourceCaptionState {
+  return {
+    detectedLanguage: "unknown",
+    text: "",
+    isFinal: false,
+  };
+}
+
+function createEmptyTranslatedCaptionState(): Record<
+  PresentationSessionRole,
+  PresentationRoleCaptionState
+> {
+  return {
+    primary: {
+      text: "",
+      isFinal: false,
+    },
+    secondary: {
+      text: "",
+      isFinal: false,
+    },
+  };
+}
+
+function appendPresentationTranscriptText(
+  currentText: string,
+  delta: string,
+  language: DetectedSupportedLanguage,
+): string {
+  const normalizedDelta = delta.replace(/\s+/g, " ");
+
+  if (!currentText) {
+    return normalizedDelta.trimStart();
+  }
+
+  if (
+    /\s$/u.test(currentText) ||
+    /^\s/u.test(normalizedDelta) ||
+    /^[,.;:!?，。！？；：%)]/u.test(normalizedDelta)
+  ) {
+    return `${currentText}${normalizedDelta}`.replace(/\s+/g, " ");
+  }
+
+  if (
+    language !== "zh" &&
+    shouldSeparateTranscriptFragments(currentText, normalizedDelta)
+  ) {
+    return `${currentText} ${normalizedDelta}`.replace(/\s+/g, " ");
+  }
+
+  return `${currentText}${normalizedDelta}`.replace(/\s+/g, " ");
+}
+
+function shouldSeparateTranscriptFragments(
+  currentText: string,
+  delta: string,
+): boolean {
+  const previousCharacter = Array.from(currentText.trimEnd()).at(-1);
+  const nextCharacter = Array.from(delta.trimStart()).at(0);
+
+  return Boolean(
+    previousCharacter &&
+      nextCharacter &&
+      /[A-Za-z0-9가-힣]/u.test(previousCharacter) &&
+      /[A-Za-z0-9가-힣]/u.test(nextCharacter),
+  );
+}
+
 function createPresentationCaption(
   text: string,
   language: SupportedLanguage,
   sessionId: string,
   isFinal = false,
   secondaryOutput?: PresentationCaptionEvent["secondaryOutput"],
+  detectedLanguage?: DetectedSupportedLanguage,
 ): PresentationCaptionEvent {
   return {
     type: isFinal ? "caption_final" : "caption_delta",
     mode: "presentation",
     sessionId,
+    detectedLanguage,
     output: {
       language,
       text: normalizeCaptionText(text, language),

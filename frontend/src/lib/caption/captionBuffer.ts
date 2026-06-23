@@ -58,8 +58,10 @@ export class CaptionBuffer {
       this.archiveCurrentBlock();
     }
 
-    const nextText = normalizeRealtimeDelta(
-      `${this.state.currentBlock.text}${normalizedDelta}`,
+    const nextText = appendRealtimeDelta(
+      this.state.currentBlock.text,
+      normalizedDelta,
+      this.language,
     );
 
     return this.applyText(nextText, false);
@@ -167,6 +169,50 @@ export class CaptionBuffer {
   }
 }
 
+function appendRealtimeDelta(
+  currentText: string,
+  delta: string,
+  language: SupportedLanguage,
+): string {
+  const normalizedDelta = normalizeRealtimeDelta(delta);
+
+  if (!currentText) {
+    return normalizedDelta.trimStart();
+  }
+
+  if (
+    /\s$/u.test(currentText) ||
+    /^\s/u.test(normalizedDelta) ||
+    /^[,.;:!?，。！？；：%)]/u.test(normalizedDelta)
+  ) {
+    return normalizeRealtimeDelta(`${currentText}${normalizedDelta}`);
+  }
+
+  if (
+    language !== "zh" &&
+    shouldSeparateWordFragments(currentText, normalizedDelta)
+  ) {
+    return normalizeRealtimeDelta(`${currentText} ${normalizedDelta}`);
+  }
+
+  return normalizeRealtimeDelta(`${currentText}${normalizedDelta}`);
+}
+
 function normalizeRealtimeDelta(text: string): string {
-  return text.replace(/\s+/g, " ").trimStart();
+  return text.replace(/\s+/g, " ");
+}
+
+function shouldSeparateWordFragments(
+  currentText: string,
+  delta: string,
+): boolean {
+  const previousCharacter = Array.from(currentText.trimEnd()).at(-1);
+  const nextCharacter = Array.from(delta.trimStart()).at(0);
+
+  return Boolean(
+    previousCharacter &&
+      nextCharacter &&
+      /[A-Za-z0-9가-힣]/u.test(previousCharacter) &&
+      /[A-Za-z0-9가-힣]/u.test(nextCharacter),
+  );
 }

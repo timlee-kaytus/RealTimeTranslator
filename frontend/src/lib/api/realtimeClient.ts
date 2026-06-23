@@ -280,7 +280,8 @@ function attachRealtimeEventHandlers(
 
     if (
       event.type === "session.input_transcript.done" ||
-      event.type === "session.input_transcript.final"
+      event.type === "session.input_transcript.final" ||
+      event.type === "session.input_transcript.completed"
     ) {
       onInputTranscriptFinal?.(
         readEventText(event.transcript) ?? readEventText(event.text) ?? "",
@@ -300,7 +301,8 @@ function attachRealtimeEventHandlers(
 
     if (
       event.type === "session.output_transcript.done" ||
-      event.type === "session.output_transcript.final"
+      event.type === "session.output_transcript.final" ||
+      event.type === "session.output_transcript.completed"
     ) {
       onTranscriptFinal?.(
         readEventText(event.transcript) ?? readEventText(event.text) ?? "",
