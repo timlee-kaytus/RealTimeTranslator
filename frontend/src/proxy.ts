@@ -22,14 +22,16 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   const isAuthenticated = await verifyAuthToken(token);
 
-  if (pathname === "/login" && isAuthenticated) {
+  if (pathname === "/login") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   if (!isPublicPath(pathname) && !isAuthenticated) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL("/login", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
