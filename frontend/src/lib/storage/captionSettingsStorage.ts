@@ -1,5 +1,6 @@
 import {
   DEFAULT_FLOATING_CAPTION_SETTINGS,
+  FLOATING_CAPTION_SETTINGS_VERSION,
   FLOATING_CAPTION_FONT_SIZE_MAX,
   FLOATING_CAPTION_FONT_SIZE_MIN,
   type FloatingCaptionSettings,
@@ -25,9 +26,11 @@ export function loadFloatingCaptionSettings(): FloatingCaptionSettings {
     if (
       typeof parsedValue.width === "number" &&
       typeof parsedValue.height === "number" &&
-      typeof parsedValue.fontSize === "number"
+      typeof parsedValue.fontSize === "number" &&
+      parsedValue.settingsVersion === FLOATING_CAPTION_SETTINGS_VERSION
     ) {
       return {
+        settingsVersion: FLOATING_CAPTION_SETTINGS_VERSION,
         preset: parsedValue.preset ?? DEFAULT_FLOATING_CAPTION_SETTINGS.preset,
         width: parsedValue.width,
         height: parsedValue.height,
@@ -38,6 +41,8 @@ export function loadFloatingCaptionSettings(): FloatingCaptionSettings {
             : DEFAULT_FLOATING_CAPTION_SETTINGS.backgroundOpacity,
       };
     }
+
+    window.localStorage.removeItem(FLOATING_CAPTION_SETTINGS_KEY);
   } catch {
     window.localStorage.removeItem(FLOATING_CAPTION_SETTINGS_KEY);
   }
