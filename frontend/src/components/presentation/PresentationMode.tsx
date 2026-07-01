@@ -55,8 +55,8 @@ import type {
 } from "@/lib/types/realtime";
 import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
-const initialOutputLanguage: SupportedLanguage = "en";
-const initialSecondaryOutputLanguage: PresentationSecondaryLanguage = "ko";
+const initialOutputLanguage: SupportedLanguage = "ko";
+const initialSecondaryOutputLanguage: PresentationSecondaryLanguage = "none";
 const maxSessionSeconds = 15 * 60;
 const WARMUP_MS = 1000;
 const READY_VISIBLE_MS = 900;
@@ -111,7 +111,7 @@ export function PresentationMode() {
       }),
       secondary: new CaptionBuffer({
         mode: "presentation",
-        language: "ko",
+        language: "en",
       }),
     },
   );
@@ -973,9 +973,7 @@ function PresentationOutputLanguageSelect({
           }
           className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
         >
-          {SUPPORTED_LANGUAGES.filter(
-            (language) => language !== primaryLanguage,
-          ).map((language) => (
+          {SUPPORTED_LANGUAGES.map((language) => (
             <option
               key={language}
               value={language}
@@ -1007,7 +1005,9 @@ function PresentationOutputLanguageSelect({
           className="rtt-select h-10 w-24 px-2 text-center text-base font-semibold"
         >
           <option value="none">없음(无)</option>
-          {SUPPORTED_LANGUAGES.map((language) => (
+          {SUPPORTED_LANGUAGES.filter(
+            (language) => language !== primaryLanguage,
+          ).map((language) => (
             <option
               key={language}
               value={language}

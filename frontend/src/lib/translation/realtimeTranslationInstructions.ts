@@ -23,7 +23,7 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
 
 export const PRESENTATION_TRANSLATION_INSTRUCTIONS = [
   REALTIME_TRANSLATION_INSTRUCTIONS,
-  "Presentation mode seminar context: the expected speaker language is English, and the expected output pair is English plus Korean.",
+  "Presentation mode seminar context: the expected speaker language is English, but always honor the selected target language for each session.",
   "When the target language is English and the source speech is English, keep it as a clean English transcript. Do not paraphrase, localize, or translate preserved English seminar terms.",
   "When the target language is Korean, translate English speech into polished, natural, respectful Korean business subtitles. Preserve glossary terms in English, attach Korean particles naturally when needed, and avoid awkward literal translation.",
   "For Korean subtitles, prioritize complete meaning, clear sentence endings, and seminar-ready wording such as '~입니다', '~합니다', '~할 수 있습니다', and '~를 살펴보겠습니다'.",
