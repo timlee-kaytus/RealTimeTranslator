@@ -79,6 +79,7 @@ export function FloatingCaptionLauncher({
       const nextWindow = await window.documentPictureInPicture.requestWindow({
         width: Math.min(settings.width, maxWidth),
         height: Math.min(settings.height, maxHeight),
+        disallowReturnToOpener: true,
       });
 
       nextWindow.document.open();

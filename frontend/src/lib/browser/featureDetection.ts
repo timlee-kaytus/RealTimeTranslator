@@ -1,6 +1,7 @@
 type DocumentPictureInPictureWindowOptions = {
   width?: number;
   height?: number;
+  disallowReturnToOpener?: boolean;
 };
 
 type DocumentPictureInPicture = {
@@ -61,4 +62,3 @@ function isLikelyMobileBrowser(): boolean {
 
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
-
