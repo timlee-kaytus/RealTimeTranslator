@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import {
   AUTH_COOKIE_NAME,
-  AUTH_MAX_AGE_SECONDS,
   createAuthToken,
 } from "@/lib/auth/session";
 
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: AUTH_MAX_AGE_SECONDS,
+      // Session cookie: removed when the browser session ends.
     });
 
     return response;
