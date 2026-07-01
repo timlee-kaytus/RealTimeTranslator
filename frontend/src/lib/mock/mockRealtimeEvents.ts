@@ -46,27 +46,27 @@ const conversationPhrases: MockPhrase[] = [
 
 const presentationPhrases: MockPhrase[] = [
   {
-    detectedLanguage: "ko",
+    detectedLanguage: "en",
     text: {
-      ko: "지금부터 KAYTUS 액체 냉각 솔루션을 소개하겠습니다.",
-      en: "We will now introduce the KAYTUS liquid cooling solution.",
-      zh: "现在我们将介绍 KAYTUS 液冷解决方案。",
+      ko: "오늘은 Aivres AIDC Capability and Solutions를 살펴보겠습니다.",
+      en: "Today we will review the Aivres AIDC Capability and Solutions.",
+      zh: "今天我们将介绍 Aivres AIDC Capability and Solutions。",
     },
   },
   {
     detectedLanguage: "en",
     text: {
-      ko: "이 아키텍처는 고밀도 AI 워크로드에 맞춰 설계되었습니다.",
-      en: "This architecture is designed for high-density AI workloads.",
-      zh: "该架构面向高密度 AI 工作负载设计。",
+      ko: "이 아키텍처는 GB200과 GB300 기반의 고밀도 AI 워크로드에 맞춰 설계되었습니다.",
+      en: "This architecture is designed for high-density AI workloads based on GB200 and GB300.",
+      zh: "该架构面向基于 GB200 和 GB300 的高密度 AI 工作负载设计。",
     },
   },
   {
-    detectedLanguage: "zh",
+    detectedLanguage: "en",
     text: {
-      ko: "다음 슬라이드에서는 운영 비용 절감 효과를 보겠습니다.",
-      en: "On the next slide, we will review the operating cost savings.",
-      zh: "下一页我们将查看运营成本节省效果。",
+      ko: "다음 슬라이드에서는 KRS8000V4와 Rubin HGX NVL8 솔루션을 비교하겠습니다.",
+      en: "On the next slide, we will compare KRS8000V4 and Rubin HGX NVL8 solutions.",
+      zh: "下一页我们将比较 KRS8000V4 和 Rubin HGX NVL8 解决方案。",
     },
   },
 ];

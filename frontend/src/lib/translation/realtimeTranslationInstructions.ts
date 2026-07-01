@@ -11,6 +11,7 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
   "Ensure sentence boundaries are clear. Do not concatenate separate sentences without spacing or punctuation.",
   "Preserve ordinary English technical or business source terms in English when they are commonly used as-is in meetings, such as Pipeline.",
   "Always preserve company and brand names such as NAVER and KAKAO exactly in English.",
+  "For NAVER x Aivres AIDC external seminar materials, keep slide-specific English nouns, product names, solution names, model names, architecture terms, protocol names, software names, and SKU names in English exactly as written.",
   "Preserve all terms in PRESERVE_ENGLISH_TERMS exactly as written. Do not translate or paraphrase model names, product names, company names, acronyms, environment variable names, API names, protocol names, technical interface names, or glossary terms.",
   `PRESERVE_ENGLISH_TERMS: ${PRESERVE_ENGLISH_TERMS.join(", ")}.`,
   "Keep exact capitalization, spacing, numbers, hyphenation, punctuation, and version formatting for preserved English terms; do not insert spaces into model names such as KR1280V3 or GB300.",
@@ -18,4 +19,12 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
   "Convert spoken numbers from Korean, English, or Chinese into Arabic numerals in every target language whenever the speaker expresses digits, quantities, prices, percentages, dates, times, phone numbers, model names, product codes, or version numbers.",
   "Apply numeric conversion before localization: Korean number words such as '일 이 삼 사', '사 오', and '스물다섯' must become '1234', '45', and '25'; English number words such as 'one two three four' and 'twenty five' must become '1234' and '25'; Chinese number words such as '一 二 三 四', '四五', and '二十五' must become '1234', '45', and '25'.",
   "Do not output translated number words or Chinese/Korean numeric characters for numeric information; use '1234', '45', '25', '10:30', and '20%' style Arabic-number notation instead.",
+].join(" ");
+
+export const PRESENTATION_TRANSLATION_INSTRUCTIONS = [
+  REALTIME_TRANSLATION_INSTRUCTIONS,
+  "Presentation mode seminar context: the expected speaker language is English, and the expected output pair is English plus Korean.",
+  "When the target language is English and the source speech is English, keep it as a clean English transcript. Do not paraphrase, localize, or translate preserved English seminar terms.",
+  "When the target language is Korean, translate English speech into polished, natural, respectful Korean business subtitles. Preserve glossary terms in English, attach Korean particles naturally when needed, and avoid awkward literal translation.",
+  "For Korean subtitles, prioritize complete meaning, clear sentence endings, and seminar-ready wording such as '~입니다', '~합니다', '~할 수 있습니다', and '~를 살펴보겠습니다'.",
 ].join(" ");

@@ -39,7 +39,7 @@ import {
   detectSupportedLanguage,
   type DetectedSupportedLanguage,
 } from "@/lib/language/detectSupportedLanguage";
-import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
+import { PRESENTATION_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import {
   LANGUAGE_FLAG_LABELS,
   LANGUAGE_LABELS,
@@ -55,8 +55,8 @@ import type {
 } from "@/lib/types/realtime";
 import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
-const initialOutputLanguage: SupportedLanguage = "ko";
-const initialSecondaryOutputLanguage: PresentationSecondaryLanguage = "none";
+const initialOutputLanguage: SupportedLanguage = "en";
+const initialSecondaryOutputLanguage: PresentationSecondaryLanguage = "ko";
 const maxSessionSeconds = 15 * 60;
 const WARMUP_MS = 1000;
 const READY_VISIBLE_MS = 900;
@@ -111,7 +111,7 @@ export function PresentationMode() {
       }),
       secondary: new CaptionBuffer({
         mode: "presentation",
-        language: "en",
+        language: "ko",
       }),
     },
   );
@@ -370,7 +370,7 @@ export function PresentationMode() {
         targetLanguages: selectedOutputLanguages,
         clientId: "anonymous",
         uiSessionId,
-        translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
+        translationInstructions: PRESENTATION_TRANSLATION_INSTRUCTIONS,
       });
 
       sessionIdRef.current = session.sessionId;
@@ -538,22 +538,33 @@ export function PresentationMode() {
   }
 
   function handleOutputLanguageChange(language: SupportedLanguage) {
+    const nextSecondaryLanguage = normalizePresentationSecondaryLanguage(
+      language,
+      secondaryOutputLanguage,
+    );
+
     setOutputLanguage(language);
-    resetCaptionBuffers(language, secondaryOutputLanguage);
+    setSecondaryOutputLanguage(nextSecondaryLanguage);
+    resetCaptionBuffers(language, nextSecondaryLanguage);
 
     if (!active) {
-      updateIdlePreview(language, secondaryOutputLanguage);
+      updateIdlePreview(language, nextSecondaryLanguage);
     }
   }
 
   function handleSecondaryOutputLanguageChange(
     language: PresentationSecondaryLanguage,
   ) {
-    setSecondaryOutputLanguage(language);
-    resetCaptionBuffers(outputLanguage, language);
+    const nextSecondaryLanguage = normalizePresentationSecondaryLanguage(
+      outputLanguage,
+      language,
+    );
+
+    setSecondaryOutputLanguage(nextSecondaryLanguage);
+    resetCaptionBuffers(outputLanguage, nextSecondaryLanguage);
 
     if (!active) {
-      updateIdlePreview(outputLanguage, language);
+      updateIdlePreview(outputLanguage, nextSecondaryLanguage);
     }
   }
 
@@ -962,7 +973,9 @@ function PresentationOutputLanguageSelect({
           }
           className="rtt-select h-10 w-16 px-2 text-center text-xl font-semibold"
         >
-          {SUPPORTED_LANGUAGES.map((language) => (
+          {SUPPORTED_LANGUAGES.filter(
+            (language) => language !== primaryLanguage,
+          ).map((language) => (
             <option
               key={language}
               value={language}
@@ -1029,9 +1042,20 @@ function getPresentationOutputLanguages(
   primaryLanguage: SupportedLanguage,
   secondaryLanguage: PresentationSecondaryLanguage,
 ): SupportedLanguage[] {
-  return secondaryLanguage === "none"
-    ? [primaryLanguage]
-    : [primaryLanguage, secondaryLanguage];
+  return [
+    ...new Set(
+      secondaryLanguage === "none"
+        ? [primaryLanguage]
+        : [primaryLanguage, secondaryLanguage],
+    ),
+  ];
+}
+
+function normalizePresentationSecondaryLanguage(
+  primaryLanguage: SupportedLanguage,
+  secondaryLanguage: PresentationSecondaryLanguage,
+): PresentationSecondaryLanguage {
+  return secondaryLanguage === primaryLanguage ? "none" : secondaryLanguage;
 }
 
 function readPresentationSession(
