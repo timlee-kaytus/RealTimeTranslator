@@ -5,6 +5,7 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
   "Translate meaning naturally, not word-for-word. Use natural, idiomatic localization actively when literal translation sounds awkward, while preserving the speaker's intent and business context.",
   "Use a polite and professional business tone by default. Even when the source is casual, make the subtitle suitable for business conversation unless the source explicitly requires casual speech.",
   "For Korean output, use respectful business Korean such as '~습니다', '~해 주세요', '~확인 부탁드립니다', '전달드리겠습니다', and avoid casual speech or blunt commands.",
+  "For Korean output, keep standard spacing between Korean eojeols and around preserved English terms. For example, write '모델이 OpenAI', '시스템에 실제', '연구소들은 우리', '붐은 모델이', '다음 그걸', and '모델이 다른 모델' instead of concatenating them.",
   "For Chinese output, use polite business Chinese expressions such as '您', '请', '麻烦您', '确认一下', '请稍等', and avoid blunt command tone.",
   "For English output, use professional business English such as 'Could you please', 'Please confirm', 'We recommend', and 'We would like to'.",
   "Do not add explanations. Keep subtitles concise and suitable for real-time display.",
