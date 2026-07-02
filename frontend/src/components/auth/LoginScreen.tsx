@@ -123,7 +123,7 @@ function RTTLogo() {
         className="size-12 shrink-0 rounded-[16px] shadow-[0_12px_28px_rgba(35,52,93,0.14)]"
       />
       <span className="text-[26px] font-black tracking-normal text-[#1b1d25]">
-        KAYTUS RTT System
+        Aivres RTT System
       </span>
     </div>
   );
