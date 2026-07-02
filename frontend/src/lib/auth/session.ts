@@ -1,10 +1,9 @@
 export const AUTH_COOKIE_NAME = "rtt_auth";
-export const AUTH_MAX_AGE_SECONDS = 60 * 60 * 12;
 
 type AuthPayload = {
   authenticated: true;
   issuedAt: number;
-  expiresAt: number;
+  expiresAt?: number;
 };
 
 const textEncoder = new TextEncoder();
@@ -15,7 +14,6 @@ export async function createAuthToken(): Promise<string> {
   const payload: AuthPayload = {
     authenticated: true,
     issuedAt: now,
-    expiresAt: now + AUTH_MAX_AGE_SECONDS * 1000,
   };
   const encodedPayload = bytesToBase64Url(
     textEncoder.encode(JSON.stringify(payload)),
@@ -50,9 +48,8 @@ export async function verifyAuthToken(token: string | undefined): Promise<boolea
     return (
       payload.authenticated === true &&
       typeof payload.issuedAt === "number" &&
-      typeof payload.expiresAt === "number" &&
       payload.issuedAt <= Date.now() &&
-      payload.expiresAt > Date.now()
+      (typeof payload.expiresAt !== "number" || payload.expiresAt > Date.now())
     );
   } catch {
     return false;

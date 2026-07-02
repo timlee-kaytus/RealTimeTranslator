@@ -19,7 +19,6 @@ import {
 import {
   connectOpenAIRealtimeTranslation,
   getRealtimeUserMessage,
-  getSessionExpiredMessage,
   requestMicrophoneAccess,
   type RealtimeTranslationConnection,
 } from "@/lib/api/realtimeClient";
@@ -57,7 +56,6 @@ import { DEFAULT_FLOATING_CAPTION_SETTINGS } from "@/lib/types/settings";
 
 const initialOutputLanguage: SupportedLanguage = "ko";
 const initialSecondaryOutputLanguage: PresentationSecondaryLanguage = "none";
-const maxSessionSeconds = 15 * 60;
 const WARMUP_MS = 1000;
 const READY_VISIBLE_MS = 900;
 const MOCK_FIRST_CAPTION_DELAY_MS = WARMUP_MS + READY_VISIBLE_MS + 200;
@@ -132,7 +130,6 @@ export function PresentationMode() {
     Partial<Record<PresentationSessionRole, number>>
   >({});
   const sourceCaptionIdleCommitTimeoutRef = useRef<number | null>(null);
-  const sessionExpireTimeoutRef = useRef<number | null>(null);
   const sessionStatusesRef = useRef<PresentationSessionStatuses>({});
   const activeSessionIdsRef = useRef<string[]>([]);
   const warmupTimeoutRef = useRef<number | null>(null);
@@ -229,10 +226,6 @@ export function PresentationMode() {
       clearPresentationActivityTimers();
       clearAllCaptionIdleCommits();
       sourceCaptionBuffer.clear();
-
-      if (sessionExpireTimeoutRef.current !== null) {
-        window.clearTimeout(sessionExpireTimeoutRef.current);
-      }
     };
   }, [
     clearAllCaptionIdleCommits,
@@ -375,7 +368,6 @@ export function PresentationMode() {
 
       sessionIdRef.current = session.sessionId;
       setSessionId(session.sessionId);
-      startSessionTimer();
       setCaption(
         createPresentationCaption(
           "",
@@ -447,7 +439,6 @@ export function PresentationMode() {
           }),
         ),
       );
-      stopSessionTimer();
       resetCaptionBuffers(outputLanguage, secondaryOutputLanguage);
       setStatus("error");
       setActivityStatus("error");
@@ -465,7 +456,6 @@ export function PresentationMode() {
     setActivityStatus("stopped");
     clearPresentationActivityTimers();
     cleanupRealtimeConnection();
-    stopSessionTimer();
     resetCaptionBuffers(outputLanguage, secondaryOutputLanguage);
     setCaption(
       createPresentationCaption(
@@ -516,25 +506,6 @@ export function PresentationMode() {
     stopMicrophoneLevel();
     sessionStatusesRef.current = {};
     activeSessionIdsRef.current = [];
-  }
-
-  function startSessionTimer() {
-    clearSessionExpireTimeout();
-    sessionExpireTimeoutRef.current = window.setTimeout(() => {
-      setErrorMessage(getSessionExpiredMessage());
-      void stopSession("session_expired");
-    }, maxSessionSeconds * 1000);
-  }
-
-  function stopSessionTimer() {
-    clearSessionExpireTimeout();
-  }
-
-  function clearSessionExpireTimeout() {
-    if (sessionExpireTimeoutRef.current !== null) {
-      window.clearTimeout(sessionExpireTimeoutRef.current);
-      sessionExpireTimeoutRef.current = null;
-    }
   }
 
   function handleOutputLanguageChange(language: SupportedLanguage) {
