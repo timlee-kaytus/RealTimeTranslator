@@ -7,7 +7,9 @@ import type {
 } from "@/lib/types/realtime";
 import type { SupportedLanguage } from "@/lib/types/language";
 
-const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? "";
+const REALTIME_SESSION_ENDPOINT = "/api/realtime/session";
+const REALTIME_SESSION_END_ENDPOINT = "/api/realtime/session/end";
+const USAGE_EVENT_ENDPOINT = "/api/usage/event";
 
 export function shouldUseMockRealtime(): boolean {
   // Phase 0 defaults to mock realtime until the OCI backend is connected.
@@ -17,11 +19,11 @@ export function shouldUseMockRealtime(): boolean {
 export async function createRealtimeSession(
   request: CreateRealtimeSessionRequest,
 ): Promise<CreateRealtimeSessionResponse> {
-  if (shouldUseMockRealtime() || BACKEND_BASE_URL.length === 0) {
+  if (shouldUseMockRealtime()) {
     return createMockSession(request);
   }
 
-  const response = await fetch(`${BACKEND_BASE_URL}/api/realtime/session`, {
+  const response = await fetch(REALTIME_SESSION_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -39,11 +41,11 @@ export async function createRealtimeSession(
 export async function endRealtimeSession(
   request: EndRealtimeSessionRequest,
 ): Promise<{ ok: true }> {
-  if (shouldUseMockRealtime() || BACKEND_BASE_URL.length === 0) {
+  if (shouldUseMockRealtime()) {
     return { ok: true };
   }
 
-  const response = await fetch(`${BACKEND_BASE_URL}/api/realtime/session/end`, {
+  const response = await fetch(REALTIME_SESSION_END_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -61,11 +63,11 @@ export async function endRealtimeSession(
 export async function recordUsageEvent(
   request: UsageEventRequest,
 ): Promise<{ ok: true }> {
-  if (shouldUseMockRealtime() || BACKEND_BASE_URL.length === 0) {
+  if (shouldUseMockRealtime()) {
     return { ok: true };
   }
 
-  const response = await fetch(`${BACKEND_BASE_URL}/api/usage/event`, {
+  const response = await fetch(USAGE_EVENT_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -18,10 +18,10 @@ Vercel 배포 시 Root Directory는 `frontend`로 설정합니다.
 
 ```env
 NEXT_PUBLIC_USE_MOCK_REALTIME=true
-NEXT_PUBLIC_BACKEND_BASE_URL=https://api-rtt.kaytus.kr
+BACKEND_BASE_URL=https://api-rtt.kaytus.kr
 ```
 
-실제 Presentation WebRTC 연결을 사용할 때는 `NEXT_PUBLIC_USE_MOCK_REALTIME=false`로 설정합니다.
+실제 Presentation WebRTC 연결을 사용할 때는 `NEXT_PUBLIC_USE_MOCK_REALTIME=false`로 설정합니다. 프론트엔드는 같은 도메인의 Next API를 거쳐 백엔드로 요청을 전달하므로, 행사별 도메인이 바뀌어도 브라우저 CORS에 의존하지 않습니다.
 
 ## 구현 범위
 
