@@ -29,11 +29,21 @@ import {
 import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import { ConversationTurnBuffer } from "@/lib/conversation/conversationTurnBuffer";
 import { createMockConversationEvent } from "@/lib/mock/mockRealtimeEvents";
+import {
+  getRealtimeSessionRefreshDelay,
+  getRealtimeSessionRemainingMs,
+  getRealtimeSessionNowMs,
+  REALTIME_SESSION_MAX_DURATION_MESSAGE,
+  REALTIME_SESSION_REFRESH_ERROR_MESSAGE,
+  REALTIME_SESSION_REFRESH_MIN_MS,
+  REALTIME_SESSION_REFRESH_RETRY_MS,
+} from "@/lib/realtime/sessionLifecycle";
 import { REALTIME_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import type { SupportedLanguage } from "@/lib/types/language";
 import type {
   ConversationActivityStatus,
   ConversationCaptionEvent,
+  CreateRealtimeSessionResponse,
   ConversationTurn,
   RealtimeConnectionStatus,
   RealtimeSessionCredential,
@@ -103,6 +113,10 @@ export function ConversationMode() {
   const readyTimeoutRef = useRef<number | null>(null);
   const speechDetectedTimeoutRef = useRef<number | null>(null);
   const translatingResetTimeoutRef = useRef<number | null>(null);
+  const sessionStartedAtRef = useRef<number | null>(null);
+  const sessionRefreshTimeoutRef = useRef<number | null>(null);
+  const sessionMaxDurationTimeoutRef = useRef<number | null>(null);
+  const sessionRefreshInFlightRef = useRef(false);
 
   const active =
     isActiveConnectionStatus(status) || isActiveActivityStatus(activityStatus);
@@ -144,6 +158,13 @@ export function ConversationMode() {
     clearTimeoutRef(readyTimeoutRef);
     clearTimeoutRef(speechDetectedTimeoutRef);
     clearTimeoutRef(translatingResetTimeoutRef);
+  }, []);
+
+  const clearSessionLifecycleTimers = useCallback(() => {
+    clearTimeoutRef(sessionRefreshTimeoutRef);
+    clearTimeoutRef(sessionMaxDurationTimeoutRef);
+    sessionRefreshInFlightRef.current = false;
+    sessionStartedAtRef.current = null;
   }, []);
 
   const startActivityWarmup = useCallback(() => {
@@ -223,12 +244,17 @@ export function ConversationMode() {
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
       stopMicrophoneLevel();
+      clearSessionLifecycleTimers();
       clearTimeoutRef(turnIdleCommitTimeoutRef);
       conversationTurnBuffer.clear();
       captionBuffers.top.clear();
       captionBuffers.bottom.clear();
     };
-  }, [clearConversationActivityTimers, stopMicrophoneLevel]);
+  }, [
+    clearConversationActivityTimers,
+    clearSessionLifecycleTimers,
+    stopMicrophoneLevel,
+  ]);
 
   useEffect(() => {
     if (!canUpdateSpeechActivity(status, activityStatus)) {
@@ -445,6 +471,7 @@ export function ConversationMode() {
       }
 
       await recordSessionUsage(activeSessionIdsRef.current, "session_started");
+      startSessionLifecycle(session);
       setStatus("listening");
       startActivityWarmup();
       return true;
@@ -452,6 +479,7 @@ export function ConversationMode() {
       const sessionIds = activeSessionIdsRef.current;
 
       cleanupRealtimeConnections();
+      clearSessionLifecycleTimers();
       await Promise.allSettled(
         sessionIds.map((currentSessionId) =>
           endRealtimeSession({
@@ -469,12 +497,13 @@ export function ConversationMode() {
     }
   }
 
-  async function stopSession() {
+  async function stopSession(reason: "user_stop" | "session_expired" = "user_stop") {
     const sessionIds = activeSessionIdsRef.current;
 
     setStatus("stopped");
     setActivityStatus("stopped");
     clearConversationActivityTimers();
+    clearSessionLifecycleTimers();
     cleanupRealtimeConnections();
     resetCaptionBuffers(topLanguage, bottomLanguage);
     conversationTurnBufferRef.current.clear();
@@ -487,22 +516,26 @@ export function ConversationMode() {
         bottomText: "",
       }),
     );
-    setErrorMessage("");
+    if (reason === "user_stop") {
+      setErrorMessage("");
+    }
 
     try {
       await Promise.all(
         sessionIds.map((currentSessionId) =>
           endRealtimeSession({
             sessionId: currentSessionId,
-            reason: "user_stop",
+            reason,
           }),
         ),
       );
       await recordSessionUsage(sessionIds, "session_stopped");
     } catch {
-      setStatus("error");
-      setActivityStatus("error");
-      setErrorMessage(getRealtimeUserMessage("network"));
+      if (reason !== "session_expired") {
+        setStatus("error");
+        setActivityStatus("error");
+        setErrorMessage(getRealtimeUserMessage("network"));
+      }
     }
   }
 
@@ -621,6 +654,218 @@ export function ConversationMode() {
       top: "stopped",
       bottom: "stopped",
     };
+  }
+
+  function startSessionLifecycle(session: CreateRealtimeSessionResponse) {
+    sessionStartedAtRef.current = getRealtimeSessionNowMs();
+    scheduleSessionMaxDurationStop();
+    scheduleSessionRefresh(session.sessions);
+  }
+
+  function scheduleSessionMaxDurationStop() {
+    clearTimeoutRef(sessionMaxDurationTimeoutRef);
+    sessionMaxDurationTimeoutRef.current = window.setTimeout(() => {
+      setErrorMessage(REALTIME_SESSION_MAX_DURATION_MESSAGE);
+      void stopSession("session_expired");
+    }, getRealtimeSessionRemainingMs(sessionStartedAtRef.current));
+  }
+
+  function scheduleSessionRefresh(sessions: RealtimeSessionCredential[]) {
+    if (shouldUseMockRealtime()) {
+      return;
+    }
+
+    clearTimeoutRef(sessionRefreshTimeoutRef);
+
+    const remainingMs = getRealtimeSessionRemainingMs(sessionStartedAtRef.current);
+
+    if (remainingMs <= REALTIME_SESSION_REFRESH_MIN_MS) {
+      return;
+    }
+
+    sessionRefreshTimeoutRef.current = window.setTimeout(
+      () => {
+        void refreshConversationSession();
+      },
+      Math.min(getRealtimeSessionRefreshDelay(sessions), remainingMs),
+    );
+  }
+
+  function scheduleSessionRefreshRetry() {
+    clearTimeoutRef(sessionRefreshTimeoutRef);
+
+    const remainingMs = getRealtimeSessionRemainingMs(sessionStartedAtRef.current);
+
+    if (remainingMs <= 0) {
+      setErrorMessage(REALTIME_SESSION_MAX_DURATION_MESSAGE);
+      void stopSession("session_expired");
+      return;
+    }
+
+    sessionRefreshTimeoutRef.current = window.setTimeout(
+      () => {
+        void refreshConversationSession();
+      },
+      Math.min(REALTIME_SESSION_REFRESH_RETRY_MS, remainingMs),
+    );
+  }
+
+  async function refreshConversationSession() {
+    if (sessionRefreshInFlightRef.current || shouldUseMockRealtime()) {
+      return;
+    }
+
+    const mediaStream = mediaStreamRef.current;
+
+    if (!mediaStream) {
+      return;
+    }
+
+    if (getRealtimeSessionRemainingMs(sessionStartedAtRef.current) <= 0) {
+      setErrorMessage(REALTIME_SESSION_MAX_DURATION_MESSAGE);
+      await stopSession("session_expired");
+      return;
+    }
+
+    sessionRefreshInFlightRef.current = true;
+
+    const previousConnections = { ...realtimeConnectionsRef.current };
+    const previousStatuses = { ...sessionStatusesRef.current };
+    const previousSessionIds = activeSessionIdsRef.current;
+
+    try {
+      clearConversationActivityTimers();
+      setStatus("reconnecting");
+      setActivityStatus("reconnecting");
+
+      const session = await createRealtimeSession({
+        mode: "conversation",
+        targetLanguages: [topLanguage, bottomLanguage],
+        clientId: "anonymous",
+        uiSessionId: createUiSessionId(),
+        translationInstructions: REALTIME_TRANSLATION_INSTRUCTIONS,
+      });
+      const topSession = readConversationSession(session.sessions, topLanguage, 0);
+      const bottomSession = readConversationSession(
+        session.sessions,
+        bottomLanguage,
+        1,
+      );
+      const connectionResults = await Promise.allSettled([
+        connectConversationSession("top", topSession, mediaStream),
+        connectConversationSession("bottom", bottomSession, mediaStream),
+      ]);
+      const failedConnection = connectionResults.find(
+        (result) => result.status === "rejected",
+      );
+
+      if (failedConnection?.status === "rejected") {
+        throw failedConnection.reason;
+      }
+
+      if (
+        sessionStartedAtRef.current === null ||
+        mediaStreamRef.current !== mediaStream
+      ) {
+        closeNewConversationConnections(previousConnections);
+        return;
+      }
+
+      const nextSessionIds = uniqueSessionIds([
+        topSession.sessionId,
+        bottomSession.sessionId,
+      ]);
+
+      closeReplacedConversationConnections(previousConnections);
+      sessionIdRef.current = session.sessionId;
+      setSessionId(session.sessionId);
+      activeSessionIdsRef.current = nextSessionIds;
+      await recordSessionUsage(nextSessionIds, "session_started");
+      await endAndRecordConversationSessions(previousSessionIds, "session_expired");
+      setErrorMessage("");
+      setStatus("listening");
+      setActivityStatus("listening");
+      scheduleSessionRefresh(session.sessions);
+    } catch {
+      if (
+        sessionStartedAtRef.current === null ||
+        mediaStreamRef.current !== mediaStream
+      ) {
+        closeNewConversationConnections(previousConnections);
+        return;
+      }
+
+      closeNewConversationConnections(previousConnections);
+      realtimeConnectionsRef.current = previousConnections;
+      sessionStatusesRef.current = previousStatuses;
+
+      const restoredStatus = deriveConversationStatus(previousStatuses);
+
+      setStatus(restoredStatus);
+      setActivityStatus(
+        restoredStatus === "error" || restoredStatus === "stopped"
+          ? restoredStatus
+          : "listening",
+      );
+      setErrorMessage(REALTIME_SESSION_REFRESH_ERROR_MESSAGE);
+      scheduleSessionRefreshRetry();
+    } finally {
+      sessionRefreshInFlightRef.current = false;
+    }
+  }
+
+  function closeReplacedConversationConnections(
+    previousConnections: Partial<
+      Record<ConversationSessionRole, RealtimeTranslationConnection>
+    >,
+  ) {
+    (Object.keys(previousConnections) as ConversationSessionRole[]).forEach(
+      (role) => {
+        const previousConnection = previousConnections[role];
+
+        if (
+          previousConnection &&
+          realtimeConnectionsRef.current[role] !== previousConnection
+        ) {
+          previousConnection.close();
+        }
+      },
+    );
+  }
+
+  function closeNewConversationConnections(
+    previousConnections: Partial<
+      Record<ConversationSessionRole, RealtimeTranslationConnection>
+    >,
+  ) {
+    (Object.keys(realtimeConnectionsRef.current) as ConversationSessionRole[])
+      .filter(
+        (role) => realtimeConnectionsRef.current[role] !== previousConnections[role],
+      )
+      .forEach((role) => {
+        realtimeConnectionsRef.current[role]?.close();
+      });
+  }
+
+  async function endAndRecordConversationSessions(
+    sessionIds: string[],
+    reason: "user_stop" | "window_closed" | "error" | "session_expired",
+  ) {
+    const uniqueIds = uniqueSessionIds(sessionIds);
+
+    if (uniqueIds.length === 0) {
+      return;
+    }
+
+    await Promise.allSettled(
+      uniqueIds.map((currentSessionId) =>
+        endRealtimeSession({
+          sessionId: currentSessionId,
+          reason,
+        }),
+      ),
+    );
+    await recordSessionUsage(uniqueIds, "session_stopped");
   }
 
   function handleTopLanguageChange(language: SupportedLanguage) {
