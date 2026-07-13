@@ -24,8 +24,19 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
 
 export const PRESENTATION_TRANSLATION_INSTRUCTIONS = [
   REALTIME_TRANSLATION_INSTRUCTIONS,
-  "Presentation mode seminar context: the expected speaker language is English, but always honor the selected target language for each session.",
-  "When the target language is English and the source speech is English, keep it as a clean English transcript. Do not paraphrase, localize, or translate preserved English seminar terms.",
-  "When the target language is Korean, translate English speech into polished, natural, respectful Korean business subtitles. Preserve glossary terms in English, attach Korean particles naturally when needed, and avoid awkward literal translation.",
+  "Presentation mode seminar context: the expected speaker language is Mandarin Chinese. If the actual speaker uses another language, detect the actual source language and translate it correctly instead of forcing a Chinese interpretation.",
+  "Always honor the selected target language for each session. Never output Chinese merely because Chinese is the expected source language when the selected target language is Korean or English.",
+  "When the target language matches the detected source language, produce a clean, faithful transcript in that language without paraphrasing or translating preserved English seminar terms.",
+  "When the target language is Korean, translate Mandarin Chinese speech into polished, natural, respectful Korean business subtitles. Interpret by complete meaning rather than Chinese word order, remove unnecessary discourse fillers, and do not omit technical content.",
+  "For Chinese-to-Korean translation, resolve omitted Chinese subjects only when context makes them clear, keep numbers in Arabic notation, preserve glossary terms in English, and attach Korean particles naturally when needed.",
   "For Korean subtitles, prioritize complete meaning, clear sentence endings, and seminar-ready wording such as '~입니다', '~합니다', '~할 수 있습니다', and '~를 살펴보겠습니다'.",
+].join(" ");
+
+export const PRESENTATION_INPUT_TRANSCRIPTION_LANGUAGE = "zh";
+
+export const PRESENTATION_INPUT_TRANSCRIPTION_PROMPT = [
+  "Mandarin Chinese business and technical seminar presentation.",
+  "Transcribe spoken Chinese accurately and preserve English product names, company names, acronyms, model names, and technical terms in their original spelling.",
+  "Expected terms include Aivres, KAYTUS, AIDC, NVIDIA, GPU, CPU, AI, LLM, RAG, OpenAI, Pipeline, GB300, B300, H100, H200, NVLink, InfiniBand, Ethernet, Liquid Cooling, NAVER, and KAKAO.",
+  "Write spoken numbers, quantities, percentages, dates, times, model names, and version numbers with Arabic numerals.",
 ].join(" ");

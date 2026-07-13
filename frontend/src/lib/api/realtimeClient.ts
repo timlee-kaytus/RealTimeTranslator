@@ -1,4 +1,5 @@
 import { shouldUseMockRealtime } from "./backendClient";
+import type { SupportedLanguage } from "@/lib/types/language";
 import type { RealtimeConnectionStatus } from "@/lib/types/realtime";
 
 const OPENAI_TRANSLATION_CALL_URL =
@@ -36,6 +37,9 @@ export type ConnectRealtimeTranslationOptions = {
   clientSecret: string;
   enableInputTranscription?: boolean;
   inputTranscriptionModel?: string;
+  inputTranscriptionLanguage?: SupportedLanguage;
+  inputTranscriptionPrompt?: string;
+  inputNoiseReduction?: "near_field" | "far_field";
   stopSourceTracksOnClose?: boolean;
   onStatusChange?: (status: RealtimeConnectionStatus) => void;
   onInputTranscriptDelta?: (delta: string) => void;
@@ -105,6 +109,8 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
       },
     });
   } catch (error) {
@@ -117,6 +123,9 @@ export async function connectOpenAIRealtimeTranslation({
   clientSecret,
   enableInputTranscription = false,
   inputTranscriptionModel = "gpt-4o-mini-transcribe",
+  inputTranscriptionLanguage,
+  inputTranscriptionPrompt,
+  inputNoiseReduction,
   stopSourceTracksOnClose = true,
   onStatusChange,
   onInputTranscriptDelta,
@@ -184,6 +193,9 @@ export async function connectOpenAIRealtimeTranslation({
         attachRealtimeEventHandlers(channel, {
           enableInputTranscription,
           inputTranscriptionModel,
+          inputTranscriptionLanguage,
+          inputTranscriptionPrompt,
+          inputNoiseReduction,
           onStatusChange,
           onInputTranscriptDelta,
           onInputTranscriptFinal,
@@ -197,6 +209,9 @@ export async function connectOpenAIRealtimeTranslation({
     attachRealtimeEventHandlers(dataChannel, {
       enableInputTranscription,
       inputTranscriptionModel,
+      inputTranscriptionLanguage,
+      inputTranscriptionPrompt,
+      inputNoiseReduction,
       onStatusChange,
       onInputTranscriptDelta,
       onInputTranscriptFinal,
@@ -246,6 +261,9 @@ function attachRealtimeEventHandlers(
   {
     enableInputTranscription,
     inputTranscriptionModel,
+    inputTranscriptionLanguage,
+    inputTranscriptionPrompt,
+    inputNoiseReduction,
     onStatusChange,
     onInputTranscriptDelta,
     onInputTranscriptFinal,
@@ -255,8 +273,17 @@ function attachRealtimeEventHandlers(
   }: Omit<ConnectRealtimeTranslationOptions, "sourceStream" | "clientSecret">,
 ) {
   dataChannel.onopen = () => {
-    if (enableInputTranscription) {
-      sendInputTranscriptionUpdate(dataChannel, inputTranscriptionModel);
+    if (enableInputTranscription || inputNoiseReduction) {
+      sendInputAudioUpdate(dataChannel, {
+        transcription: enableInputTranscription
+          ? {
+              model: inputTranscriptionModel,
+              language: inputTranscriptionLanguage,
+              prompt: inputTranscriptionPrompt,
+            }
+          : undefined,
+        noiseReduction: inputNoiseReduction,
+      });
     }
 
     onStatusChange?.("listening");
@@ -337,9 +364,19 @@ function attachRealtimeEventHandlers(
   };
 }
 
-function sendInputTranscriptionUpdate(
+function sendInputAudioUpdate(
   dataChannel: RTCDataChannel,
-  model: string | undefined,
+  {
+    transcription,
+    noiseReduction,
+  }: {
+    transcription?: {
+      model?: string;
+      language?: SupportedLanguage;
+      prompt?: string;
+    };
+    noiseReduction?: "near_field" | "far_field";
+  },
 ) {
   if (dataChannel.readyState !== "open") {
     return;
@@ -351,9 +388,22 @@ function sendInputTranscriptionUpdate(
       session: {
         audio: {
           input: {
-            transcription: {
-              model: model ?? "gpt-realtime-whisper",
-            },
+            ...(transcription
+              ? {
+                  transcription: {
+                    model: transcription.model ?? "gpt-4o-mini-transcribe",
+                    ...(transcription.language
+                      ? { language: transcription.language }
+                      : {}),
+                    ...(transcription.prompt?.trim()
+                      ? { prompt: transcription.prompt.trim() }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(noiseReduction
+              ? { noise_reduction: { type: noiseReduction } }
+              : {}),
           },
         },
       },
