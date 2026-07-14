@@ -47,11 +47,7 @@ import {
   REALTIME_SESSION_REFRESH_MIN_MS,
   REALTIME_SESSION_REFRESH_RETRY_MS,
 } from "@/lib/realtime/sessionLifecycle";
-import {
-  PRESENTATION_INPUT_TRANSCRIPTION_LANGUAGE,
-  PRESENTATION_INPUT_TRANSCRIPTION_PROMPT,
-  PRESENTATION_TRANSLATION_INSTRUCTIONS,
-} from "@/lib/translation/realtimeTranslationInstructions";
+import { PRESENTATION_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import {
   LANGUAGE_FLAG_LABELS,
   LANGUAGE_LABELS,
@@ -823,12 +819,6 @@ export function PresentationMode() {
       clientSecret: realtimeSession.clientSecret,
       stopSourceTracksOnClose: false,
       enableInputTranscription: captureSourceTranscript,
-      inputTranscriptionLanguage: captureSourceTranscript
-        ? PRESENTATION_INPUT_TRANSCRIPTION_LANGUAGE
-        : undefined,
-      inputTranscriptionPrompt: captureSourceTranscript
-        ? PRESENTATION_INPUT_TRANSCRIPTION_PROMPT
-        : undefined,
       inputNoiseReduction: "far_field",
       onStatusChange: (nextStatus) => {
         handlePresentationSessionStatusChange(role, nextStatus);

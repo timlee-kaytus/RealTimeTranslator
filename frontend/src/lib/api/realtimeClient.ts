@@ -1,5 +1,4 @@
 import { shouldUseMockRealtime } from "./backendClient";
-import type { SupportedLanguage } from "@/lib/types/language";
 import type { RealtimeConnectionStatus } from "@/lib/types/realtime";
 
 const OPENAI_TRANSLATION_CALL_URL =
@@ -37,8 +36,6 @@ export type ConnectRealtimeTranslationOptions = {
   clientSecret: string;
   enableInputTranscription?: boolean;
   inputTranscriptionModel?: string;
-  inputTranscriptionLanguage?: SupportedLanguage;
-  inputTranscriptionPrompt?: string;
   inputNoiseReduction?: "near_field" | "far_field";
   stopSourceTracksOnClose?: boolean;
   onStatusChange?: (status: RealtimeConnectionStatus) => void;
@@ -123,8 +120,6 @@ export async function connectOpenAIRealtimeTranslation({
   clientSecret,
   enableInputTranscription = false,
   inputTranscriptionModel = "gpt-4o-mini-transcribe",
-  inputTranscriptionLanguage,
-  inputTranscriptionPrompt,
   inputNoiseReduction,
   stopSourceTracksOnClose = true,
   onStatusChange,
@@ -193,8 +188,6 @@ export async function connectOpenAIRealtimeTranslation({
         attachRealtimeEventHandlers(channel, {
           enableInputTranscription,
           inputTranscriptionModel,
-          inputTranscriptionLanguage,
-          inputTranscriptionPrompt,
           inputNoiseReduction,
           onStatusChange,
           onInputTranscriptDelta,
@@ -209,8 +202,6 @@ export async function connectOpenAIRealtimeTranslation({
     attachRealtimeEventHandlers(dataChannel, {
       enableInputTranscription,
       inputTranscriptionModel,
-      inputTranscriptionLanguage,
-      inputTranscriptionPrompt,
       inputNoiseReduction,
       onStatusChange,
       onInputTranscriptDelta,
@@ -261,8 +252,6 @@ function attachRealtimeEventHandlers(
   {
     enableInputTranscription,
     inputTranscriptionModel,
-    inputTranscriptionLanguage,
-    inputTranscriptionPrompt,
     inputNoiseReduction,
     onStatusChange,
     onInputTranscriptDelta,
@@ -275,12 +264,8 @@ function attachRealtimeEventHandlers(
   dataChannel.onopen = () => {
     if (enableInputTranscription || inputNoiseReduction) {
       sendInputAudioUpdate(dataChannel, {
-        transcription: enableInputTranscription
-          ? {
-              model: inputTranscriptionModel,
-              language: inputTranscriptionLanguage,
-              prompt: inputTranscriptionPrompt,
-            }
+        transcriptionModel: enableInputTranscription
+          ? inputTranscriptionModel
           : undefined,
         noiseReduction: inputNoiseReduction,
       });
@@ -367,14 +352,10 @@ function attachRealtimeEventHandlers(
 function sendInputAudioUpdate(
   dataChannel: RTCDataChannel,
   {
-    transcription,
+    transcriptionModel,
     noiseReduction,
   }: {
-    transcription?: {
-      model?: string;
-      language?: SupportedLanguage;
-      prompt?: string;
-    };
+    transcriptionModel?: string;
     noiseReduction?: "near_field" | "far_field";
   },
 ) {
@@ -388,16 +369,10 @@ function sendInputAudioUpdate(
       session: {
         audio: {
           input: {
-            ...(transcription
+            ...(transcriptionModel
               ? {
                   transcription: {
-                    model: transcription.model ?? "gpt-4o-mini-transcribe",
-                    ...(transcription.language
-                      ? { language: transcription.language }
-                      : {}),
-                    ...(transcription.prompt?.trim()
-                      ? { prompt: transcription.prompt.trim() }
-                      : {}),
+                    model: transcriptionModel,
                   },
                 }
               : {}),

@@ -31,12 +31,3 @@ export const PRESENTATION_TRANSLATION_INSTRUCTIONS = [
   "For Chinese-to-Korean translation, resolve omitted Chinese subjects only when context makes them clear, keep numbers in Arabic notation, preserve glossary terms in English, and attach Korean particles naturally when needed.",
   "For Korean subtitles, prioritize complete meaning, clear sentence endings, and seminar-ready wording such as '~입니다', '~합니다', '~할 수 있습니다', and '~를 살펴보겠습니다'.",
 ].join(" ");
-
-export const PRESENTATION_INPUT_TRANSCRIPTION_LANGUAGE = "zh";
-
-export const PRESENTATION_INPUT_TRANSCRIPTION_PROMPT = [
-  "Mandarin Chinese business and technical seminar presentation.",
-  "Transcribe spoken Chinese accurately and preserve English product names, company names, acronyms, model names, and technical terms in their original spelling.",
-  "Expected terms include Aivres, KAYTUS, AIDC, NVIDIA, GPU, CPU, AI, LLM, RAG, OpenAI, Pipeline, GB300, B300, H100, H200, NVLink, InfiniBand, Ethernet, Liquid Cooling, NAVER, and KAKAO.",
-  "Write spoken numbers, quantities, percentages, dates, times, model names, and version numbers with Arabic numerals.",
-].join(" ");
