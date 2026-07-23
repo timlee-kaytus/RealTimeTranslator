@@ -504,6 +504,7 @@ function updateFloatingCaptionBox({
     const emptyElement = document.createElement("p");
     emptyElement.className = "caption-empty";
     emptyElement.textContent = "자막 대기 중";
+    emptyElement.style.fontSize = `${fontSize}px`;
     listElement.append(emptyElement);
     return;
   }

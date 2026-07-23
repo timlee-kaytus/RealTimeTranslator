@@ -62,12 +62,12 @@ export function InterpreterMode() {
     <section className="flex min-h-[calc(100dvh-76px)] flex-col items-center justify-center overflow-hidden px-4 py-8 sm:px-6">
       <div className="flex w-full max-w-3xl flex-col items-center gap-6 text-center">
         <div className="flex items-center gap-3 text-sm font-black text-[#4f5368] sm:text-base">
-          <span className="rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
-            한국어
+          <span className="whitespace-nowrap rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
+            한국어(韩语)
           </span>
           <AudioLines aria-hidden className="size-5 text-[#7132f5]" />
-          <span className="rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
-            中文
+          <span className="whitespace-nowrap rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
+            中文(중국어)
           </span>
         </div>
 

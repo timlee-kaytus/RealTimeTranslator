@@ -89,7 +89,7 @@ export function CaptionSizeControls({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-black text-[#101114]">
           <Blend aria-hidden className="size-4 text-[#7132f5]" />
-          배경 투명도
+          배경 밝기
         </div>
         <span className="text-sm font-black tabular-nums text-[#686b82]">
           {transparencyPercent}%
