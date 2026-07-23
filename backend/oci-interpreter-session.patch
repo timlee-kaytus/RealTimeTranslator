@@ -1,0 +1,260 @@
+--- a/server.js
++++ b/server.js
+@@ -15,0 +16,8 @@
++const OPENAI_INTERPRETER_MODEL =
++  process.env.OPENAI_INTERPRETER_MODEL || "gpt-realtime-2.1";
++const OPENAI_INTERPRETER_VOICE =
++  process.env.OPENAI_INTERPRETER_VOICE || "marin";
++const OPENAI_INTERPRETER_REASONING_EFFORT =
++  process.env.OPENAI_INTERPRETER_REASONING_EFFORT || "low";
++const OPENAI_INTERPRETER_NOISE_REDUCTION =
++  process.env.OPENAI_INTERPRETER_NOISE_REDUCTION || "far_field";
+@@ -18,0 +27,2 @@
++const OPENAI_REALTIME_CLIENT_SECRET_URL =
++  "https://api.openai.com/v1/realtime/client_secrets";
+@@ -19,0 +30,12 @@
++const INTERPRETER_INSTRUCTIONS = [
++  "Act as a professional Korean and Mandarin Chinese interpreter.",
++  "Detect whether the active speaker is using Korean or Mandarin Chinese and normally interpret only into the other language.",
++  "Do not answer the speaker's questions as an assistant, add explanations, or repeat both languages in the spoken output.",
++  "To make the interaction feel natural, you may occasionally use a very brief conversational backchannel appropriate to the language and context, but do not add one to every turn or interrupt the speaker.",
++  "If an utterance is incomplete or materially ambiguous and a reliable interpretation cannot be completed, ask one concise clarification question in the detected speaker's language, then resume interpreting after the answer.",
++  "Preserve meaning with natural cultural adaptation and a polite business tone.",
++  "Keep common English technical terms and company names in English.",
++  "Render spoken numbers as Arabic numerals.",
++  "Stay silent for silence, background noise, music, and unrelated ambient audio.",
++].join(" ");
++
+@@ -21,0 +44,2 @@
++const INTERPRETER_LANGUAGES = new Set(["ko", "zh"]);
++const INTERPRETER_MICROPHONE_PROFILES = new Set(["near_field", "far_field"]);
+@@ -102,0 +127,18 @@
++}
++
++function normalizeInterpreterLanguages(languages) {
++  if (!Array.isArray(languages) || languages.length !== 2) {
++    return null;
++  }
++
++  const normalized = languages.map(normalizeLanguage);
++  const uniqueLanguages = new Set(normalized);
++
++  if (
++    uniqueLanguages.size !== 2 ||
++    normalized.some((language) => !INTERPRETER_LANGUAGES.has(language))
++  ) {
++    return null;
++  }
++
++  return normalized;
+@@ -104,0 +147,14 @@
++function normalizeInterpreterMicrophoneProfile(profile) {
++  const normalized = String(
++    profile || OPENAI_INTERPRETER_NOISE_REDUCTION,
++  )
++    .trim()
++    .toLowerCase();
++
++  if (!INTERPRETER_MICROPHONE_PROFILES.has(normalized)) {
++    return null;
++  }
++
++  return normalized;
++}
++
+@@ -279,0 +336,9 @@
++
++async function createOpenAIInterpreterCredential({
++  sessionId,
++  languages,
++  microphoneProfile,
++  clientId,
++  uiSessionId,
++}) {
++  const openaiApiKey = process.env.OPENAI_API_KEY;
+@@ -280,0 +346,98 @@
++  if (!openaiApiKey) {
++    const error = new Error("OPENAI_API_KEY is not configured on the backend.");
++    error.code = "missing_openai_api_key";
++    throw error;
++  }
++
++  const safetyIdentifier = hashSafetyIdentifier(
++    `${clientId || "anonymous"}:${uiSessionId || sessionId}:interpreter`,
++  );
++  const openaiPayload = {
++    expires_after: {
++      anchor: "created_at",
++      seconds: 600,
++    },
++    session: {
++      type: "realtime",
++      model: OPENAI_INTERPRETER_MODEL,
++      output_modalities: ["audio"],
++      instructions: INTERPRETER_INSTRUCTIONS,
++      reasoning: {
++        effort: OPENAI_INTERPRETER_REASONING_EFFORT,
++      },
++      audio: {
++        input: {
++          transcription: {
++            model: "gpt-4o-mini-transcribe",
++          },
++          noise_reduction: {
++            type: microphoneProfile,
++          },
++          turn_detection: {
++            type: "semantic_vad",
++          },
++        },
++        output: {
++          voice: OPENAI_INTERPRETER_VOICE,
++        },
++      },
++    },
++  };
++
++  const openaiResponse = await fetch(OPENAI_REALTIME_CLIENT_SECRET_URL, {
++    method: "POST",
++    headers: {
++      Authorization: `Bearer ${openaiApiKey}`,
++      "Content-Type": "application/json",
++      "OpenAI-Safety-Identifier": safetyIdentifier,
++    },
++    body: JSON.stringify(openaiPayload),
++  });
++  const data = await readOpenAIResponseBody(openaiResponse);
++
++  if (!openaiResponse.ok) {
++    const error = new Error(
++      "Failed to create OpenAI realtime interpreter client secret.",
++    );
++    error.code = "openai_interpreter_client_secret_failed";
++    error.status = openaiResponse.status;
++    error.openaiRequestId = openaiResponse.headers.get("x-request-id");
++    error.responseKeys = Object.keys(data || {});
++    throw error;
++  }
++
++  const clientSecret = getClientSecretFromOpenAIResponse(data);
++
++  if (!clientSecret) {
++    const error = new Error(
++      "OpenAI response did not include a usable interpreter client secret.",
++    );
++    error.code = "openai_interpreter_client_secret_missing_value";
++    error.status = 502;
++    error.responseKeys = Object.keys(data || {});
++    throw error;
++  }
++
++  const expiresAt = getExpiresAtFromOpenAIResponse(data);
++
++  logSafe({
++    event: "openai_interpreter_client_secret_created",
++    sessionId,
++    languages,
++    microphoneProfile,
++    model: OPENAI_INTERPRETER_MODEL,
++    voice: OPENAI_INTERPRETER_VOICE,
++    timestamp: nowIso(),
++  });
++
++  return {
++    sessionId,
++    provider: "openai",
++    transport: "webrtc",
++    clientSecret,
++    expiresAt,
++    model: OPENAI_INTERPRETER_MODEL,
++    voice: OPENAI_INTERPRETER_VOICE,
++  };
++}
++
+@@ -288,0 +452,86 @@
++app.post("/api/realtime/interpreter-session", async (req, res) => {
++  const { languages, microphoneProfile, clientId, uiSessionId } = req.body || {};
++  const normalizedLanguages = normalizeInterpreterLanguages(languages);
++
++  if (!normalizedLanguages) {
++    return res.status(400).json({
++      error: "invalid_interpreter_languages",
++      message: "languages must contain ko and zh exactly once.",
++    });
++  }
++
++  const normalizedMicrophoneProfile =
++    normalizeInterpreterMicrophoneProfile(microphoneProfile);
++
++  if (!normalizedMicrophoneProfile) {
++    return res.status(400).json({
++      error: "invalid_microphone_profile",
++      message: "microphoneProfile must be near_field or far_field.",
++    });
++  }
++
++  const sessionId = `rtti_${crypto.randomUUID()}`;
++
++  try {
++    const response = await createOpenAIInterpreterCredential({
++      sessionId,
++      languages: normalizedLanguages,
++      microphoneProfile: normalizedMicrophoneProfile,
++      clientId,
++      uiSessionId,
++    });
++
++    logSafe({
++      event: "interpreter_session_created",
++      sessionId,
++      languages: normalizedLanguages,
++      microphoneProfile: normalizedMicrophoneProfile,
++      model: response.model,
++      voice: response.voice,
++      timestamp: nowIso(),
++    });
++
++    return res.json(response);
++  } catch (error) {
++    const code = error.code || "interpreter_session_create_failed";
++    const openaiStatus = Number.isInteger(error.status) ? error.status : null;
++
++    logSafe({
++      event: "interpreter_session_create_failed",
++      sessionId,
++      code,
++      openaiStatus,
++      openaiRequestId: error.openaiRequestId || null,
++      responseKeys: error.responseKeys || null,
++      message: error instanceof Error ? error.message : String(error),
++      timestamp: nowIso(),
++    });
++
++    if (code === "missing_openai_api_key") {
++      return res.status(500).json({
++        error: code,
++        message: "OpenAI is not configured on the backend.",
++      });
++    }
++
++    if (code === "openai_interpreter_client_secret_failed") {
++      return res.status(openaiStatus === 429 ? 503 : 502).json({
++        error: code,
++        message: "Failed to create OpenAI realtime interpreter session.",
++      });
++    }
++
++    if (code === "openai_interpreter_client_secret_missing_value") {
++      return res.status(502).json({
++        error: code,
++        message: "OpenAI did not return interpreter session credentials.",
++      });
++    }
++
++    return res.status(500).json({
++      error: "interpreter_session_create_failed",
++      message: "Unexpected error while creating the interpreter session.",
++    });
++  }
++});
++

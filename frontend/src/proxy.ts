@@ -26,11 +26,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!isPublicPath(pathname) && !isAuthenticated) {
-    if (pathname === "/") {
-      return NextResponse.rewrite(new URL("/login", request.url));
-    }
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
 
+  if (!isPublicPath(pathname) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

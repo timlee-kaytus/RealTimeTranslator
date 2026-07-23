@@ -110,3 +110,89 @@ Content-Type: application/json
 ```
 
 Usage events must not include source text or translated text.
+
+## Realtime Interpreter Session
+
+The interpreter endpoint is separate from the translation endpoint because it
+uses a conversational Realtime voice session with remote audio playback.
+
+```http
+POST /api/realtime/interpreter-session
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "clientId": "anonymous-or-user-id",
+  "uiSessionId": "uuid-from-frontend",
+  "languages": ["ko", "zh"],
+  "microphoneProfile": "far_field"
+}
+```
+
+Response:
+
+```json
+{
+  "sessionId": "server-session-id",
+  "provider": "openai",
+  "transport": "webrtc",
+  "clientSecret": "ek_short-lived-client-secret",
+  "expiresAt": "2026-07-23T00:10:00.000Z",
+  "model": "gpt-realtime-2.1",
+  "voice": "marin"
+}
+```
+
+The backend creates the client secret with:
+
+```http
+POST https://api.openai.com/v1/realtime/client_secrets
+Authorization: Bearer $OPENAI_API_KEY
+Content-Type: application/json
+```
+
+Recommended OpenAI request shape:
+
+```json
+{
+  "expires_after": {
+    "anchor": "created_at",
+    "seconds": 600
+  },
+  "session": {
+    "type": "realtime",
+    "model": "gpt-realtime-2.1",
+    "output_modalities": ["audio"],
+    "instructions": "Act as a professional Korean and Mandarin Chinese interpreter. Detect whether the active speaker is using Korean or Mandarin Chinese and normally interpret only into the other language. Do not answer the speaker's questions as an assistant, add explanations, or repeat both languages in the spoken output. To make the interaction feel natural, you may occasionally use a very brief conversational backchannel appropriate to the language and context, but do not add one to every turn or interrupt the speaker. If an utterance is incomplete or materially ambiguous and a reliable interpretation cannot be completed, ask one concise clarification question in the detected speaker's language, then resume interpreting after the answer. Preserve meaning with natural cultural adaptation and a polite business tone. Keep common English technical terms and company names in English. Render spoken numbers as Arabic numerals. Stay silent for silence, background noise, music, and unrelated ambient audio.",
+    "audio": {
+      "input": {
+        "transcription": {
+          "model": "gpt-4o-mini-transcribe"
+        },
+        "noise_reduction": {
+          "type": "far_field"
+        },
+        "turn_detection": {
+          "type": "semantic_vad"
+        }
+      },
+      "output": {
+        "voice": "marin"
+      }
+    }
+  }
+}
+```
+
+The standard OpenAI API key must remain on OCI. Only the short-lived
+`clientSecret` is returned to the browser. Source audio, source transcripts,
+and interpreted transcripts must not be written to application logs, usage
+events, or persistent storage.
+
+Realtime voice sessions have a shorter provider lifetime than the application's
+four-hour usage window. The frontend requests a new interpreter session before
+the provider limit and replaces only the WebRTC connection while retaining the
+same browser microphone stream.

@@ -6,8 +6,13 @@ import type {
   UsageEventRequest,
 } from "@/lib/types/realtime";
 import type { SupportedLanguage } from "@/lib/types/language";
+import type {
+  CreateInterpreterSessionRequest,
+  CreateInterpreterSessionResponse,
+} from "@/lib/types/interpreter";
 
 const REALTIME_SESSION_ENDPOINT = "/api/realtime/session";
+const INTERPRETER_SESSION_ENDPOINT = "/api/realtime/interpreter-session";
 const REALTIME_SESSION_END_ENDPOINT = "/api/realtime/session/end";
 const USAGE_EVENT_ENDPOINT = "/api/usage/event";
 
@@ -36,6 +41,28 @@ export async function createRealtimeSession(
   }
 
   return normalizeRealtimeSessionResponse(await response.json(), request);
+}
+
+export async function createInterpreterSession(
+  request: CreateInterpreterSessionRequest,
+): Promise<CreateInterpreterSessionResponse> {
+  if (shouldUseMockRealtime()) {
+    return createMockInterpreterSession();
+  }
+
+  const response = await fetch(INTERPRETER_SESSION_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Interpreter session request failed.");
+  }
+
+  return normalizeInterpreterSessionResponse(await response.json());
 }
 
 export async function endRealtimeSession(
@@ -119,6 +146,69 @@ function createMockSession(
     sessionId: parentSessionId,
     sessions,
   };
+}
+
+function createMockInterpreterSession(): CreateInterpreterSessionResponse {
+  const sessionId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? `mock-interpreter-${crypto.randomUUID()}`
+      : `mock-interpreter-${Date.now()}`;
+
+  return {
+    sessionId,
+    provider: "mock",
+    transport: "mock",
+    clientSecret: "mock-interpreter-client-secret",
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    model: "mock-gpt-realtime-2.1",
+    voice: "marin",
+  };
+}
+
+function normalizeInterpreterSessionResponse(
+  data: unknown,
+): CreateInterpreterSessionResponse {
+  const record = isRecord(data) ? data : {};
+  const sessionRecord = isRecord(record.session) ? record.session : {};
+  const clientSecret = readClientSecret(record);
+
+  if (!clientSecret) {
+    throw new Error("Backend did not return interpreter session credentials.");
+  }
+
+  return {
+    sessionId:
+      readString(record.sessionId) ??
+      readString(record.session_id) ??
+      readString(record.id) ??
+      readString(sessionRecord.id) ??
+      `openai-interpreter-${Date.now()}`,
+    provider: readProvider(record) ?? "openai",
+    transport: readTransport(record) ?? "webrtc",
+    clientSecret,
+    expiresAt:
+      readCredentialExpiry(record) ??
+      new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    model:
+      readString(record.model) ??
+      readString(sessionRecord.model) ??
+      "gpt-realtime-2.1",
+    voice: readInterpreterVoice(record, sessionRecord) ?? "marin",
+  };
+}
+
+function readInterpreterVoice(
+  record: Record<string, unknown>,
+  sessionRecord: Record<string, unknown>,
+): string | undefined {
+  const audioRecord = isRecord(sessionRecord.audio) ? sessionRecord.audio : {};
+  const outputRecord = isRecord(audioRecord.output) ? audioRecord.output : {};
+
+  return (
+    readString(record.voice) ??
+    readString(sessionRecord.voice) ??
+    readString(outputRecord.voice)
+  );
 }
 
 function normalizeRealtimeSessionResponse(

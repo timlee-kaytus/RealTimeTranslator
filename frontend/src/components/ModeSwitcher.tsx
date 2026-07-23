@@ -1,6 +1,6 @@
 "use client";
 
-import { MessagesSquare, Presentation } from "lucide-react";
+import { Languages, Presentation } from "lucide-react";
 
 import type { TranslationMode } from "@/lib/types/realtime";
 
@@ -12,8 +12,8 @@ type ModeSwitcherProps = {
 const modes = [
   {
     value: "conversation" as const,
-    label: "대화 모드(对话模式)",
-    Icon: MessagesSquare,
+    label: "통역사 모드(口译模式)",
+    Icon: Languages,
   },
   {
     value: "presentation" as const,

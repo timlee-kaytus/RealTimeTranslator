@@ -6,7 +6,7 @@ import { LogOut } from "lucide-react";
 
 import { ModeSwitcher } from "@/components/ModeSwitcher";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
-import { ConversationMode } from "@/components/conversation/ConversationMode";
+import { InterpreterMode } from "@/components/interpreter/InterpreterMode";
 import { PresentationMode } from "@/components/presentation/PresentationMode";
 import type { TranslationMode } from "@/lib/types/realtime";
 
@@ -62,7 +62,7 @@ export function AppShell() {
         </div>
       </header>
       <main className="mx-auto max-w-7xl">
-        {mode === "conversation" ? <ConversationMode /> : <PresentationMode />}
+        {mode === "conversation" ? <InterpreterMode /> : <PresentationMode />}
       </main>
     </div>
   );
