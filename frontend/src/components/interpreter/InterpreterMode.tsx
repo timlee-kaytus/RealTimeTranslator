@@ -98,7 +98,7 @@ export function InterpreterMode() {
           type="button"
           disabled={busy}
           onClick={handleSessionToggle}
-          className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-black transition disabled:cursor-wait disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white sm:text-base ${
+          className={`inline-flex min-h-14 items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-black transition disabled:cursor-wait disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white sm:text-base ${
             active
               ? "border-[#dedee5] bg-white text-[#303242] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] hover:border-[#c9b8ff] hover:bg-[#f4f2ff]"
               : "border-transparent bg-[#7132f5] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#5741d8]"
@@ -113,7 +113,14 @@ export function InterpreterMode() {
             ? "통역 연결 중..."
             : active
               ? "실시간 통역 종료"
-              : "실시간 통역 시작"}
+              : (
+                  <span className="flex flex-col items-center leading-tight">
+                    <span>실시간 통역 시작</span>
+                    <span className="mt-0.5 text-xs font-bold opacity-90">
+                      (开始实时口译)
+                    </span>
+                  </span>
+                )}
         </button>
 
         <div className="min-h-10 w-full max-w-xl">
