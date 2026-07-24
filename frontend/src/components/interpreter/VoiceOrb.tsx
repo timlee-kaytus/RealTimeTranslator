@@ -36,12 +36,12 @@ export function VoiceOrb({
     <div className="relative shrink-0">
       <div
         role="note"
-        className="pointer-events-none absolute right-0 top-2 z-10 max-w-[210px] rounded-[10px] border border-[#d8ccff] bg-white px-3 py-2 text-left text-xs font-bold leading-snug text-[#4f5368] shadow-[0_8px_24px_rgba(77,42,157,0.14)] sm:-right-24 sm:-top-3 sm:max-w-[280px] sm:text-sm"
+        className="pointer-events-none absolute right-0 top-8 z-10 max-w-[210px] rounded-[10px] border border-[#d8ccff] bg-white px-3 py-2 text-left text-xs font-bold leading-snug text-[#4f5368] shadow-[0_8px_24px_rgba(77,42,157,0.14)] sm:-right-24 sm:top-5 sm:max-w-[280px] sm:text-sm"
       >
         클릭시 마이크 음소거(点击后麦克风静音)
         <span
           aria-hidden="true"
-          className="absolute -bottom-2 right-7 size-4 rotate-45 border-b border-r border-[#d8ccff] bg-white sm:right-12"
+          className="absolute -bottom-2 left-7 size-4 rotate-45 border-b border-r border-[#d8ccff] bg-white sm:left-10"
         />
       </div>
 
