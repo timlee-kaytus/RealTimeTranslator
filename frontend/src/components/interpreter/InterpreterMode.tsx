@@ -8,7 +8,7 @@ import { useRealtimeInterpreter } from "@/hooks/useRealtimeInterpreter";
 import type { InterpreterStatus } from "@/lib/types/interpreter";
 
 const statusMessages: Record<InterpreterStatus, string> = {
-  idle: "실시간 통역 대기 중",
+  idle: "실시간 통역 대기 중(实时口译等待中)",
   requesting_microphone: "마이크 권한 확인 중",
   connecting: "통역 연결 중",
   listening: "듣는 중",

@@ -33,58 +33,71 @@ export function VoiceOrb({
   const title = muted ? "마이크 음소거 해제" : "마이크 음소거";
 
   return (
-    <button
-      type="button"
-      aria-label={title}
-      aria-pressed={muted}
-      disabled={disabled}
-      title={disabled ? "통역 연결 후 사용할 수 있습니다." : title}
-      onClick={onToggleMute}
-      className={`interpreter-orb relative grid size-64 shrink-0 place-items-center rounded-full border-[10px] sm:size-72 md:size-80 ${
-        muted
-          ? "interpreter-orb--muted border-[#c8c9d3] bg-[#686b82]"
-          : speaking
-            ? "interpreter-orb--speaking border-[#d8ccff] bg-[#5b1ecf]"
-            : "interpreter-orb--listening border-[#ded6ff] bg-[#7132f5]"
-      } ${disabled ? "cursor-default opacity-80" : "cursor-pointer"}`}
-    >
-      <span
-        aria-hidden
-        className="absolute inset-5 rounded-full border border-white/30 bg-[#4f24b8]/45"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-10 rounded-full border border-white/20 bg-[#2f176f]/30"
-      />
+    <div className="relative shrink-0">
+      <div
+        role="note"
+        className="pointer-events-none absolute right-0 top-2 z-10 max-w-[210px] rounded-[10px] border border-[#d8ccff] bg-white px-3 py-2 text-left text-xs font-bold leading-snug text-[#4f5368] shadow-[0_8px_24px_rgba(77,42,157,0.14)] sm:-right-24 sm:-top-3 sm:max-w-[280px] sm:text-sm"
+      >
+        클릭시 마이크 음소거(点击后麦克风静音)
+        <span
+          aria-hidden="true"
+          className="absolute -bottom-2 right-7 size-4 rotate-45 border-b border-r border-[#d8ccff] bg-white sm:right-12"
+        />
+      </div>
 
-      {muted ? (
-        <span className="relative grid size-24 place-items-center rounded-full border border-white/30 bg-black/15 text-white">
-          <MicOff aria-hidden className="size-11" strokeWidth={1.8} />
-        </span>
-      ) : (
+      <button
+        type="button"
+        aria-label={title}
+        aria-pressed={muted}
+        disabled={disabled}
+        title={disabled ? "통역 연결 후 사용할 수 있습니다." : title}
+        onClick={onToggleMute}
+        className={`interpreter-orb relative grid size-64 shrink-0 place-items-center rounded-full border-[10px] sm:size-72 md:size-80 ${
+          muted
+            ? "interpreter-orb--muted border-[#c8c9d3] bg-[#686b82]"
+            : speaking
+              ? "interpreter-orb--speaking border-[#d8ccff] bg-[#5b1ecf]"
+              : "interpreter-orb--listening border-[#ded6ff] bg-[#7132f5]"
+        } ${disabled ? "cursor-default opacity-80" : "cursor-pointer"}`}
+      >
         <span
           aria-hidden
-          className="relative flex h-28 items-center justify-center gap-2 sm:h-32 sm:gap-2.5"
-        >
-          {barFactors.map((factor, index) => {
-            const height = getBarHeight(level, factor, status);
+          className="absolute inset-5 rounded-full border border-white/30 bg-[#4f24b8]/45"
+        />
+        <span
+          aria-hidden
+          className="absolute inset-10 rounded-full border border-white/20 bg-[#2f176f]/30"
+        />
 
-            return (
-              <span
-                key={`${factor}-${index}`}
-                className={`interpreter-orb__bar w-2.5 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.28)] sm:w-3 ${
-                  processing ? "interpreter-orb__bar--processing" : ""
-                }`}
-                style={{
-                  height: `${height}px`,
-                  animationDelay: `${index * 90}ms`,
-                }}
-              />
-            );
-          })}
-        </span>
-      )}
-    </button>
+        {muted ? (
+          <span className="relative grid size-24 place-items-center rounded-full border border-white/30 bg-black/15 text-white">
+            <MicOff aria-hidden className="size-11" strokeWidth={1.8} />
+          </span>
+        ) : (
+          <span
+            aria-hidden
+            className="relative flex h-28 items-center justify-center gap-2 sm:h-32 sm:gap-2.5"
+          >
+            {barFactors.map((factor, index) => {
+              const height = getBarHeight(level, factor, status);
+
+              return (
+                <span
+                  key={`${factor}-${index}`}
+                  className={`interpreter-orb__bar w-2.5 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.28)] sm:w-3 ${
+                    processing ? "interpreter-orb__bar--processing" : ""
+                  }`}
+                  style={{
+                    height: `${height}px`,
+                    animationDelay: `${index * 90}ms`,
+                  }}
+                />
+              );
+            })}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
 
