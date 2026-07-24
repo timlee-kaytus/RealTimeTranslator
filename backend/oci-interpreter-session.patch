@@ -12,25 +12,27 @@
 @@ -18,0 +27,2 @@
 +const OPENAI_REALTIME_CLIENT_SECRET_URL =
 +  "https://api.openai.com/v1/realtime/client_secrets";
-@@ -19,0 +30,12 @@
+@@ -19,0 +30,16 @@
 +const INTERPRETER_INSTRUCTIONS = [
 +  "Act as a professional Korean and Mandarin Chinese interpreter.",
-+  "Detect whether the active speaker is using Korean or Mandarin Chinese and normally interpret only into the other language.",
-+  "Do not answer the speaker's questions as an assistant, add explanations, or repeat both languages in the spoken output.",
-+  "To make the interaction feel natural, you may occasionally use a very brief conversational backchannel appropriate to the language and context, but do not add one to every turn or interrupt the speaker.",
-+  "If an utterance is incomplete or materially ambiguous and a reliable interpretation cannot be completed, ask one concise clarification question in the detected speaker's language, then resume interpreting after the answer.",
++  "The default operating mode is always INTERPRETER MODE. Start every new session in INTERPRETER MODE and maintain the current mode until a valid mode command changes it.",
++  "In INTERPRETER MODE, detect whether the active speaker is using Korean or Mandarin Chinese and interpret only into the other language.",
++  "Never interrupt the speaker. Wait for the speaker to finish a complete thought, including natural pauses, before speaking. If the speaker begins talking while you are speaking, stop and listen.",
++  "In INTERPRETER MODE, output only the interpretation. Do not add backchannels, filler, greetings, acknowledgements, opinions, explanations, commentary, or unsolicited questions. Do not answer the speaker's questions as an assistant; interpret them.",
++  "Only when a completed utterance is incomplete, internally inconsistent, contextually implausible, or materially ambiguous enough that a reliable interpretation cannot be produced, ask exactly one concise clarification question in the detected speaker's language. After the answer, immediately resume interpreting.",
++  "When the speaker clearly says the standalone Korean command '통역사 모드 중지', do not translate the command. Switch to GENERAL CONVERSATION MODE and briefly confirm the mode change.",
++  "In GENERAL CONVERSATION MODE, converse naturally and answer questions in the language currently used by the speaker. Do not automatically interpret between Korean and Mandarin Chinese.",
++  "When the speaker clearly says the standalone Korean command '통역사 모드 시작', do not translate the command. Switch to INTERPRETER MODE, briefly confirm the mode change, and apply all INTERPRETER MODE rules starting with the next utterance.",
 +  "Preserve meaning with natural cultural adaptation and a polite business tone.",
 +  "Keep common English technical terms and company names in English.",
 +  "Render spoken numbers as Arabic numerals.",
 +  "Stay silent for silence, background noise, music, and unrelated ambient audio.",
 +].join(" ");
 +
-@@ -21,0 +44,2 @@
+@@ -21,0 +48,2 @@
 +const INTERPRETER_LANGUAGES = new Set(["ko", "zh"]);
 +const INTERPRETER_MICROPHONE_PROFILES = new Set(["near_field", "far_field"]);
-@@ -102,0 +127,18 @@
-+}
-+
+@@ -104,0 +133,32 @@
 +function normalizeInterpreterLanguages(languages) {
 +  if (!Array.isArray(languages) || languages.length !== 2) {
 +    return null;
@@ -47,7 +49,8 @@
 +  }
 +
 +  return normalized;
-@@ -104,0 +147,14 @@
++}
++
 +function normalizeInterpreterMicrophoneProfile(profile) {
 +  const normalized = String(
 +    profile || OPENAI_INTERPRETER_NOISE_REDUCTION,
@@ -62,7 +65,7 @@
 +  return normalized;
 +}
 +
-@@ -279,0 +336,9 @@
+@@ -279,0 +340,9 @@
 +
 +async function createOpenAIInterpreterCredential({
 +  sessionId,
@@ -72,7 +75,7 @@
 +  uiSessionId,
 +}) {
 +  const openaiApiKey = process.env.OPENAI_API_KEY;
-@@ -280,0 +346,98 @@
+@@ -280,0 +350,98 @@
 +  if (!openaiApiKey) {
 +    const error = new Error("OPENAI_API_KEY is not configured on the backend.");
 +    error.code = "missing_openai_api_key";
@@ -171,7 +174,7 @@
 +  };
 +}
 +
-@@ -288,0 +452,86 @@
+@@ -288,0 +456,86 @@
 +app.post("/api/realtime/interpreter-session", async (req, res) => {
 +  const { languages, microphoneProfile, clientId, uiSessionId } = req.body || {};
 +  const normalizedLanguages = normalizeInterpreterLanguages(languages);
