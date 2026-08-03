@@ -209,6 +209,8 @@ then sends `input_audio_buffer.commit` and `response.create` when listening
 stops. The microphone track remains disabled between turns. This client-side
 override means the OCI backend can keep `semantic_vad` as its initial fallback
 configuration and does not require a deployment change for manual listening.
+The single listening control creates the interpreter session automatically on
+its first use, so the UI does not expose a separate session-start button.
 
 Interpreter mode state is scoped to the current OpenAI Realtime session. Every
 new or renewed session starts in interpreter mode. The Korean start and stop

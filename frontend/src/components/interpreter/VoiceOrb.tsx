@@ -11,7 +11,7 @@ type VoiceOrbProps = {
   active: boolean;
   busy: boolean;
   muted: boolean;
-  onToggleListening: () => void;
+  onToggleListening: () => void | Promise<void>;
 };
 
 const barFactors = [0.46, 0.68, 0.9, 1, 0.82, 0.62, 0.42];
@@ -25,7 +25,7 @@ export function VoiceOrb({
   muted,
   onToggleListening,
 }: VoiceOrbProps) {
-  const disabled = !active || busy;
+  const disabled = busy;
   const listening = active && !muted;
   const level = selectVisibleLevel(status, inputLevel, outputLevel, muted);
   const processing = status === "interpreting" || status === "reconnecting";
@@ -53,8 +53,8 @@ export function VoiceOrb({
         aria-label={title}
         aria-pressed={listening}
         disabled={disabled}
-        title={disabled ? "통역 연결 후 사용할 수 있습니다." : title}
-        onClick={onToggleListening}
+        title={disabled ? "통역 연결 중입니다." : title}
+        onClick={() => void onToggleListening()}
         className={`interpreter-orb relative grid size-64 shrink-0 place-items-center rounded-full border-[10px] sm:size-72 md:size-80 ${
           muted
             ? "interpreter-orb--muted border-[#c8c9d3] bg-[#686b82]"
