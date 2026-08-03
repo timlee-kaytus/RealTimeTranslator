@@ -40,7 +40,7 @@ type UseRealtimeInterpreterResult = {
   errorMessage: string;
   start: () => Promise<boolean>;
   stop: (reason?: StopReason) => Promise<void>;
-  toggleMute: () => void;
+  toggleListening: () => void;
 };
 
 export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
@@ -240,7 +240,13 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
 
       connectionRef.current = nextConnection;
       sessionIdRef.current = session.sessionId;
-      nextConnection.setMuted(mutedRef.current);
+
+      if (mutedRef.current) {
+        nextConnection.setMuted(true);
+      } else {
+        nextConnection.startListening();
+      }
+
       previousConnection?.close();
       setErrorMessage("");
       setInterpreterStatus("listening");
@@ -334,8 +340,8 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
     const operationId = operationIdRef.current + 1;
     operationIdRef.current = operationId;
     lifecycleEnabledRef.current = true;
-    mutedRef.current = false;
-    setMuted(false);
+    mutedRef.current = true;
+    setMuted(true);
     setActive(false);
     setBusy(true);
     setErrorMessage("");
@@ -361,6 +367,9 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
         }
 
         mediaStreamRef.current = requestedStream;
+        requestedStream.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
         startInputMeter(requestedStream);
       }
 
@@ -382,7 +391,7 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
       if (usingMockRealtime) {
         setActive(true);
         setBusy(false);
-        setStatus("listening");
+        setStatus("muted");
         startMockActivity();
         void recordInterpreterUsage(session.sessionId, "session_started");
         return true;
@@ -400,9 +409,10 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
       }
 
       connectionRef.current = connection;
+      connection.setMuted(true);
       setActive(true);
       setBusy(false);
-      setInterpreterStatus("listening");
+      setStatus("muted");
       scheduleRenewal();
       maxDurationTimeoutRef.current = window.setTimeout(() => {
         setErrorMessage(INTERPRETER_MAX_DURATION_MESSAGE);
@@ -437,27 +447,38 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
     connectSession,
     releaseMedia,
     scheduleRenewal,
-    setInterpreterStatus,
     startInputMeter,
     startMockActivity,
     stop,
   ]);
 
-  const toggleMute = useCallback(() => {
+  const toggleListening = useCallback(() => {
     if (!lifecycleEnabledRef.current || busy) {
       return;
     }
 
     const nextMuted = !mutedRef.current;
+    const usingMockRealtime = shouldUseMockRealtime();
+    const stateChanged = usingMockRealtime
+      ? true
+      : nextMuted
+        ? connectionRef.current?.stopListening()
+        : connectionRef.current?.startListening();
+
+    if (!stateChanged) {
+      setErrorMessage(
+        "듣기 상태를 변경하지 못했습니다. 통역 연결을 확인한 뒤 다시 시도해 주세요.",
+      );
+      return;
+    }
+
     mutedRef.current = nextMuted;
     setMuted(nextMuted);
-    connectionRef.current?.setMuted(nextMuted);
-    mediaStreamRef.current?.getAudioTracks().forEach((track) => {
-      track.enabled = !nextMuted;
-    });
+    setErrorMessage("");
 
     if (nextMuted) {
-      setStatus("muted");
+      setMockLevel(0);
+      setStatus(usingMockRealtime ? "muted" : "interpreting");
       return;
     }
 
@@ -492,7 +513,7 @@ export function useRealtimeInterpreter(): UseRealtimeInterpreterResult {
     errorMessage,
     start,
     stop,
-    toggleMute,
+    toggleListening,
   };
 }
 
@@ -522,12 +543,7 @@ async function endInterpreterSession(sessionId: string, reason: StopReason) {
 }
 
 function isMuteOverridableStatus(status: InterpreterStatus): boolean {
-  return (
-    status === "listening" ||
-    status === "user_speaking" ||
-    status === "interpreting" ||
-    status === "assistant_speaking"
-  );
+  return status === "listening" || status === "user_speaking";
 }
 
 type TimeoutRef = {

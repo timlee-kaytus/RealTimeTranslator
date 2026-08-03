@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, Square } from "lucide-react";
+import { AudioLines, Mic, MicOff, Square } from "lucide-react";
 
 import { VoiceOrb } from "@/components/interpreter/VoiceOrb";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -15,7 +15,7 @@ const statusMessages: Record<InterpreterStatus, string> = {
   user_speaking: "음성을 듣고 있습니다",
   interpreting: "통역 중",
   assistant_speaking: "통역 음성 출력 중",
-  muted: "마이크 음소거됨",
+  muted: "듣기 대기 중",
   reconnecting: "통역 세션 재연결 중",
   error: "연결 오류",
   stopped: "통역이 중지되었습니다",
@@ -46,8 +46,15 @@ export function InterpreterMode() {
     errorMessage,
     start,
     stop,
-    toggleMute,
+    toggleListening,
   } = useRealtimeInterpreter();
+  const listening = active && !muted;
+  const listeningControlDisabled =
+    !active ||
+    busy ||
+    status === "connecting" ||
+    status === "reconnecting" ||
+    status === "error";
 
   async function handleSessionToggle() {
     if (active) {
@@ -78,7 +85,7 @@ export function InterpreterMode() {
           active={active}
           busy={busy}
           muted={muted}
-          onToggleMute={toggleMute}
+          onToggleListening={toggleListening}
         />
 
         <div
@@ -94,34 +101,61 @@ export function InterpreterMode() {
           {statusMessages[status]}
         </div>
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={handleSessionToggle}
-          className={`inline-flex min-h-14 items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-black transition disabled:cursor-wait disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white sm:text-base ${
-            active
-              ? "border-[#dedee5] bg-white text-[#303242] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] hover:border-[#c9b8ff] hover:bg-[#f4f2ff]"
-              : "border-transparent bg-[#7132f5] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#5741d8]"
-          }`}
-        >
-          {active ? (
-            <Square aria-hidden className="size-4" fill="currentColor" />
-          ) : (
-            <AudioLines aria-hidden className="size-5" />
-          )}
-          {busy
-            ? "통역 연결 중..."
-            : active
-              ? "실시간 통역 종료"
-              : (
-                  <span className="flex flex-col items-center leading-tight">
-                    <span>실시간 통역 시작</span>
-                    <span className="mt-0.5 text-xs font-bold opacity-90">
-                      (开始实时口译)
+        <div className="flex w-full flex-wrap items-stretch justify-center gap-3 sm:w-auto sm:flex-nowrap">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleSessionToggle}
+            className={`inline-flex min-h-14 min-w-[184px] items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-black transition disabled:cursor-wait disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white sm:text-base ${
+              active
+                ? "border-[#dedee5] bg-white text-[#303242] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] hover:border-[#c9b8ff] hover:bg-[#f4f2ff]"
+                : "border-transparent bg-[#7132f5] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#5741d8]"
+            }`}
+          >
+            {active ? (
+              <Square aria-hidden className="size-4" fill="currentColor" />
+            ) : (
+              <AudioLines aria-hidden className="size-5" />
+            )}
+            {busy
+              ? "통역 연결 중..."
+              : active
+                ? "실시간 통역 종료"
+                : (
+                    <span className="flex flex-col items-center leading-tight">
+                      <span>실시간 통역 시작</span>
+                      <span className="mt-0.5 text-xs font-bold opacity-90">
+                        (开始实时口译)
+                      </span>
                     </span>
-                  </span>
-                )}
-        </button>
+                  )}
+          </button>
+
+          <button
+            type="button"
+            aria-label={listening ? "듣기 종료" : "듣기 시작"}
+            aria-pressed={listening}
+            disabled={listeningControlDisabled}
+            onClick={toggleListening}
+            className={`inline-flex min-h-14 min-w-[148px] items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white sm:text-base ${
+              listening
+                ? "border-[#f0b7b7] bg-white text-[#b42318] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] hover:border-[#e78585] hover:bg-[#fff5f5]"
+                : "border-transparent bg-[#149e61] text-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] hover:bg-[#0f8250]"
+            }`}
+          >
+            {listening ? (
+              <MicOff aria-hidden className="size-5" />
+            ) : (
+              <Mic aria-hidden className="size-5" />
+            )}
+            <span className="flex flex-col items-center leading-tight">
+              <span>{listening ? "듣기 종료" : "듣기 시작"}</span>
+              <span className="mt-0.5 text-xs font-bold opacity-90">
+                {listening ? "(停止聆听)" : "(开始聆听)"}
+              </span>
+            </span>
+          </button>
+        </div>
 
         <div className="min-h-10 w-full max-w-xl">
           <ErrorBanner message={errorMessage} />

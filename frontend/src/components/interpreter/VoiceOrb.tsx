@@ -11,7 +11,7 @@ type VoiceOrbProps = {
   active: boolean;
   busy: boolean;
   muted: boolean;
-  onToggleMute: () => void;
+  onToggleListening: () => void;
 };
 
 const barFactors = [0.46, 0.68, 0.9, 1, 0.82, 0.62, 0.42];
@@ -23,14 +23,15 @@ export function VoiceOrb({
   active,
   busy,
   muted,
-  onToggleMute,
+  onToggleListening,
 }: VoiceOrbProps) {
   const disabled = !active || busy;
+  const listening = active && !muted;
   const level = selectVisibleLevel(status, inputLevel, outputLevel, muted);
   const processing = status === "interpreting" || status === "reconnecting";
   const speaking =
     status === "user_speaking" || status === "assistant_speaking";
-  const title = muted ? "마이크 음소거 해제" : "마이크 음소거";
+  const title = listening ? "듣기 종료" : "듣기 시작";
 
   return (
     <div className="relative shrink-0">
@@ -38,7 +39,9 @@ export function VoiceOrb({
         role="note"
         className="pointer-events-none absolute right-0 top-8 z-10 max-w-[210px] rounded-[10px] border border-[#d8ccff] bg-white px-3 py-2 text-left text-xs font-bold leading-snug text-[#4f5368] shadow-[0_8px_24px_rgba(77,42,157,0.14)] sm:-right-24 sm:top-5 sm:max-w-[280px] sm:text-sm"
       >
-        클릭시 마이크 음소거(点击后麦克风静音)
+        {listening
+          ? "클릭시 듣기 종료(点击后停止聆听)"
+          : "클릭시 듣기 시작(点击后开始聆听)"}
         <span
           aria-hidden="true"
           className="absolute -bottom-2 left-7 size-4 rotate-45 border-b border-r border-[#d8ccff] bg-white sm:left-10"
@@ -48,10 +51,10 @@ export function VoiceOrb({
       <button
         type="button"
         aria-label={title}
-        aria-pressed={muted}
+        aria-pressed={listening}
         disabled={disabled}
         title={disabled ? "통역 연결 후 사용할 수 있습니다." : title}
-        onClick={onToggleMute}
+        onClick={onToggleListening}
         className={`interpreter-orb relative grid size-64 shrink-0 place-items-center rounded-full border-[10px] sm:size-72 md:size-80 ${
           muted
             ? "interpreter-orb--muted border-[#c8c9d3] bg-[#686b82]"

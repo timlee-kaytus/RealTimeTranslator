@@ -187,6 +187,29 @@ Recommended OpenAI request shape:
 }
 ```
 
+After the WebRTC data channel opens, the interpreter frontend switches the
+effective session to manual turn control with a partial `session.update`:
+
+```json
+{
+  "type": "session.update",
+  "session": {
+    "type": "realtime",
+    "audio": {
+      "input": {
+        "turn_detection": null
+      }
+    }
+  }
+}
+```
+
+Each listening turn clears the previous input buffer when listening starts,
+then sends `input_audio_buffer.commit` and `response.create` when listening
+stops. The microphone track remains disabled between turns. This client-side
+override means the OCI backend can keep `semantic_vad` as its initial fallback
+configuration and does not require a deployment change for manual listening.
+
 Interpreter mode state is scoped to the current OpenAI Realtime session. Every
 new or renewed session starts in interpreter mode. The Korean start and stop
 phrases change modes only when spoken clearly as standalone commands, which

@@ -27,9 +27,16 @@ type RealtimeVoiceServerEvent = {
   };
 };
 
+type RealtimeVoiceClientEvent = {
+  type: string;
+  [key: string]: unknown;
+};
+
 export type RealtimeVoiceConnection = {
   close: () => void;
   setMuted: (muted: boolean) => void;
+  startListening: () => boolean;
+  stopListening: () => boolean;
   resumeAudio: () => Promise<void>;
 };
 
@@ -71,6 +78,9 @@ export async function connectOpenAIRealtimeVoice({
   const attachedChannels = new Set<RTCDataChannel>();
   const audioElement = createRemoteAudioElement();
   let closed = false;
+  let responseInProgress = false;
+  let outputAudioInProgress = false;
+  let manualTurnDetectionConfigured = false;
 
   const emitVoiceEvent = (event: InterpreterVoiceEvent) => {
     if (!closed) {
@@ -84,18 +94,72 @@ export async function connectOpenAIRealtimeVoice({
     }
   };
 
+  const sendClientEvent = (event: RealtimeVoiceClientEvent): boolean => {
+    const openChannel = Array.from(attachedChannels).find(
+      (channel) => channel.readyState === "open",
+    );
+
+    if (!openChannel) {
+      reportError(interpreterConnectionMessages.network);
+      return false;
+    }
+
+    try {
+      openChannel.send(JSON.stringify(event));
+      return true;
+    } catch {
+      reportError(interpreterConnectionMessages.network);
+      return false;
+    }
+  };
+
+  const configureManualTurnDetection = () => {
+    if (manualTurnDetectionConfigured) {
+      return;
+    }
+
+    manualTurnDetectionConfigured = sendClientEvent({
+      type: "session.update",
+      session: {
+        type: "realtime",
+        audio: {
+          input: {
+            turn_detection: null,
+          },
+        },
+      },
+    });
+  };
+
   const attachDataChannel = (channel: RTCDataChannel) => {
     if (attachedChannels.has(channel)) {
       return;
     }
 
     attachedChannels.add(channel);
-    channel.onopen = () => emitVoiceEvent("connected");
+    channel.onopen = () => {
+      configureManualTurnDetection();
+      emitVoiceEvent("connected");
+    };
     channel.onmessage = ({ data }) => {
       const event = parseRealtimeVoiceEvent(data);
 
       if (!event.type) {
         return;
+      }
+
+      if (event.type === "response.created") {
+        responseInProgress = true;
+      } else if (
+        event.type === "response.output_audio.delta" ||
+        event.type === "response.output_audio_transcript.delta"
+      ) {
+        outputAudioInProgress = true;
+      } else if (event.type === "response.output_audio.done") {
+        outputAudioInProgress = false;
+      } else if (event.type === "response.done") {
+        responseInProgress = false;
+        outputAudioInProgress = false;
       }
 
       handleRealtimeVoiceEvent(event, {
@@ -205,6 +269,7 @@ export async function connectOpenAIRealtimeVoice({
       type: "answer",
       sdp: await response.text(),
     });
+    await waitForDataChannelOpen(dataChannel);
 
     return {
       close: cleanup,
@@ -212,6 +277,39 @@ export async function connectOpenAIRealtimeVoice({
         audioTracks.forEach((track) => {
           track.enabled = !muted;
         });
+      },
+      startListening: () => {
+        const events: RealtimeVoiceClientEvent[] = [
+          { type: "input_audio_buffer.clear" },
+        ];
+
+        if (responseInProgress) {
+          events.push({ type: "response.cancel" });
+        }
+
+        if (outputAudioInProgress) {
+          events.push({ type: "output_audio_buffer.clear" });
+        }
+
+        const ready = events.every(sendClientEvent);
+
+        if (ready) {
+          audioTracks.forEach((track) => {
+            track.enabled = true;
+          });
+        }
+
+        return ready;
+      },
+      stopListening: () => {
+        audioTracks.forEach((track) => {
+          track.enabled = false;
+        });
+
+        return (
+          sendClientEvent({ type: "input_audio_buffer.commit" }) &&
+          sendClientEvent({ type: "response.create" })
+        );
       },
       resumeAudio: async () => {
         await audioElement.play();
@@ -221,6 +319,41 @@ export async function connectOpenAIRealtimeVoice({
     cleanup();
     throw new Error(getInterpreterConnectionMessage(error));
   }
+}
+
+function waitForDataChannelOpen(
+  channel: RTCDataChannel,
+  timeoutMs: number = 10_000,
+): Promise<void> {
+  if (channel.readyState === "open") {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error(interpreterConnectionMessages.connection));
+    }, timeoutMs);
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      channel.removeEventListener("open", handleOpen);
+      channel.removeEventListener("close", handleFailure);
+      channel.removeEventListener("error", handleFailure);
+    };
+    const handleOpen = () => {
+      cleanup();
+      resolve();
+    };
+    const handleFailure = () => {
+      cleanup();
+      reject(new Error(interpreterConnectionMessages.connection));
+    };
+
+    channel.addEventListener("open", handleOpen, { once: true });
+    channel.addEventListener("close", handleFailure, { once: true });
+    channel.addEventListener("error", handleFailure, { once: true });
+  });
 }
 
 function createRemoteAudioElement(): HTMLAudioElement {
