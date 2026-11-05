@@ -3,7 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { PictureInPicture2 } from "lucide-react";
+import { MonitorUp, PictureInPicture2 } from "lucide-react";
 
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNotice";
@@ -47,6 +47,7 @@ export function FloatingCaptionLauncher({
 }: FloatingCaptionLauncherProps) {
   const support = useMemo(() => getPresentationSupport(), []);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
+  const [backdropWindow, setBackdropWindow] = useState<Window | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const captionHistoryRef = useRef<FloatingCaptionHistory>(
     createEmptyFloatingCaptionHistory(),
@@ -103,6 +104,57 @@ export function FloatingCaptionLauncher({
           : "플로팅 자막창을 열지 못했습니다.",
       );
     }
+  }
+
+  function openPresentationBackdrop() {
+    setErrorMessage("");
+
+    if (backdropWindow && !backdropWindow.closed) {
+      backdropWindow.focus();
+      requestBackdropFullscreen(backdropWindow);
+      return;
+    }
+
+    const availableWidth = window.screen?.availWidth ?? 1920;
+    const availableHeight = window.screen?.availHeight ?? 1080;
+    const nextWindow = window.open(
+      "",
+      "rtt-presentation-backdrop",
+      [
+        "popup=yes",
+        "left=0",
+        "top=0",
+        `width=${availableWidth}`,
+        `height=${availableHeight}`,
+      ].join(","),
+    );
+
+    if (!nextWindow) {
+      setErrorMessage(
+        "발표 배경창이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.",
+      );
+      return;
+    }
+
+    const imageUrl = new URL(
+      "/images/presentation-fullscreen-backdrop.webp",
+      window.location.origin,
+    ).href;
+
+    nextWindow.document.open();
+    nextWindow.document.write(createPresentationBackdropMarkup(imageUrl));
+    nextWindow.document.close();
+
+    try {
+      nextWindow.moveTo(0, 0);
+      nextWindow.resizeTo(availableWidth, availableHeight);
+    } catch {
+      // Some browsers intentionally ignore scripted window placement.
+    }
+
+    attachBackdropFullscreenControl(nextWindow);
+    setBackdropWindow(nextWindow);
+    requestBackdropFullscreen(nextWindow);
   }
 
   useEffect(() => {
@@ -185,6 +237,19 @@ export function FloatingCaptionLauncher({
     };
   }, [onSettingsChange, pipWindow]);
 
+  useEffect(() => {
+    if (!backdropWindow || backdropWindow.closed) {
+      return;
+    }
+
+    const handlePageHide = () => setBackdropWindow(null);
+    backdropWindow.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      backdropWindow.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [backdropWindow]);
+
   return (
     <div className="rtt-card space-y-3 p-4">
       {!support.supported && <BrowserSupportNotice />}
@@ -199,19 +264,134 @@ export function FloatingCaptionLauncher({
           className="h-auto w-full"
         />
       </div>
-      <button
-        type="button"
-        disabled={!support.supported}
-        onClick={openFloatingCaption}
-        className="rtt-outline-button inline-flex h-12 w-full items-center justify-center gap-2 px-4 text-sm disabled:cursor-not-allowed disabled:border-[#dedee5] disabled:bg-[#c4c6d1] disabled:text-white"
-      >
-        <PictureInPicture2 aria-hidden className="size-5" />
-        {pipWindow && !pipWindow.closed
-          ? "플로팅 갱신"
-          : "플로팅 시작(开启悬浮窗)"}
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={!support.supported}
+          onClick={openFloatingCaption}
+          className="rtt-outline-button inline-flex min-h-14 w-full items-center justify-center gap-2 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:border-[#dedee5] disabled:bg-[#c4c6d1] disabled:text-white"
+        >
+          <PictureInPicture2 aria-hidden className="size-5 shrink-0" />
+          <span className="leading-tight">
+            {pipWindow && !pipWindow.closed
+              ? "플로팅 갱신"
+              : "플로팅 시작(开启悬浮窗)"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={openPresentationBackdrop}
+          className="rtt-outline-button inline-flex min-h-14 w-full items-center justify-center gap-2 px-3 py-2 text-sm"
+        >
+          <MonitorUp aria-hidden className="size-5 shrink-0" />
+          <span className="leading-tight">
+            {backdropWindow && !backdropWindow.closed
+              ? "발표 배경 보기"
+              : "발표 배경 열기"}
+          </span>
+        </button>
+      </div>
     </div>
   );
+}
+
+function createPresentationBackdropMarkup(imageUrl: string) {
+  return `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KAYTUS Presentation Background</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000000;
+      }
+      body {
+        background-image: url("${imageUrl}");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+      .fullscreen-control {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.68);
+        color: #ffffff;
+        cursor: pointer;
+        font: 700 24px/1 Arial, sans-serif;
+        opacity: 0;
+        transition: opacity 160ms ease, background-color 160ms ease;
+      }
+      body:hover .fullscreen-control,
+      .fullscreen-control:focus-visible,
+      .fullscreen-control[data-visible="true"] {
+        opacity: 1;
+      }
+      .fullscreen-control:hover {
+        background: rgba(113, 50, 245, 0.88);
+      }
+      .fullscreen-control:focus-visible {
+        outline: 2px solid #8f63ff;
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <button
+      id="fullscreen-control"
+      class="fullscreen-control"
+      type="button"
+      aria-label="전체 화면으로 보기"
+      title="전체 화면"
+    >&#x26F6;</button>
+  </body>
+</html>`;
+}
+
+function attachBackdropFullscreenControl(targetWindow: Window) {
+  const control = targetWindow.document.getElementById(
+    "fullscreen-control",
+  ) as HTMLButtonElement | null;
+
+  control?.addEventListener("click", () => {
+    requestBackdropFullscreen(targetWindow);
+  });
+}
+
+function requestBackdropFullscreen(targetWindow: Window) {
+  const { document } = targetWindow;
+  const control = document.getElementById("fullscreen-control");
+
+  if (document.fullscreenElement) {
+    return;
+  }
+
+  const requestFullscreen = document.documentElement.requestFullscreen;
+
+  if (typeof requestFullscreen !== "function") {
+    control?.setAttribute("data-visible", "true");
+    return;
+  }
+
+  try {
+    void requestFullscreen.call(document.documentElement).catch(() => {
+      control?.setAttribute("data-visible", "true");
+    });
+  } catch {
+    control?.setAttribute("data-visible", "true");
+  }
 }
 
 function createFloatingCaptionMarkup(backgroundOpacity: number) {
