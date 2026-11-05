@@ -387,5 +387,5 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isSupportedLanguage(value: unknown): value is SupportedLanguage {
-  return value === "ko" || value === "en" || value === "zh";
+  return value === "ko" || value === "en" || value === "zh" || value === "ja";
 }

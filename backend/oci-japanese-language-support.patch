@@ -1,0 +1,26 @@
+diff --git a/server.js b/server.js
+--- a/server.js
++++ b/server.js
+@@ -47,1 +47,1 @@
+-const SUPPORTED_LANGUAGES = new Set(["ko", "en", "zh"]);
++const SUPPORTED_LANGUAGES = new Set(["ko", "en", "zh", "ja"]);
+@@ -104,1 +104,9 @@ function normalizeLanguage(language) {
+-  return normalized;
++  if (
++    normalized === "ja" ||
++    normalized === "ja-jp" ||
++    normalized === "japanese"
++  ) {
++    return "ja";
++  }
++
++  return normalized;
+@@ -561,7 +570,7 @@ app.post("/api/realtime/session", async (req, res) => {
+   if (!validation.valid) {
+     return res.status(400).json({
+       error: "unsupported_language",
+-      message: "Only ko, en, zh are supported in this MVP.",
++      message: "Only ko, en, zh, ja are supported.",
+       detail: {
+         received: targetLanguages,
+         normalized: normalizedTargetLanguages,

@@ -10,11 +10,16 @@ export function detectSupportedLanguage(
   }
 
   const hangulCount = countMatches(text, /[가-힣ㄱ-ㅎㅏ-ㅣ]/gu);
+  const kanaCount = countMatches(text, /[\u3040-\u30ff\u31f0-\u31ff]/gu);
   const hanCount = countMatches(text, /[\u3400-\u9fff]/gu);
   const latinCount = countMatches(text, /[A-Za-z]/gu);
 
   if (hangulCount > 0) {
     return "ko";
+  }
+
+  if (kanaCount > 0) {
+    return "ja";
   }
 
   if (hanCount > 0) {

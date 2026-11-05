@@ -45,6 +45,10 @@ Presentation mode:
 }
 ```
 
+Supported translation target language codes are `ko`, `en`, `zh`, and `ja`.
+Japanese session responses use `targetLanguage: "ja"`. Interpreter mode remains
+the dedicated Korean-Mandarin voice workflow and is not changed by this list.
+
 `translationInstructions` is an optional policy string for the backend to apply
 when creating realtime translation sessions. It must not include source text,
 translated text, or any user transcript content.
