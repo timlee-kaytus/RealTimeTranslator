@@ -4,7 +4,11 @@ import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 
+import { UiLanguageSelect } from "@/components/UiLanguageSelect";
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
+
 export function LoginScreen() {
+  const { t } = useUiLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,7 +18,7 @@ export function LoginScreen() {
     event.preventDefault();
 
     if (!password) {
-      setErrorMessage("비밀번호를 입력해 주세요.");
+      setErrorMessage(t("passwordRequired"));
       return;
     }
 
@@ -33,15 +37,15 @@ export function LoginScreen() {
       if (!response.ok) {
         setErrorMessage(
           response.status === 500
-            ? "로그인 설정을 확인해 주세요."
-            : "비밀번호가 올바르지 않습니다.",
+            ? t("loginConfigurationError")
+            : t("invalidPassword"),
         );
         return;
       }
 
       window.location.href = "/";
     } catch {
-      setErrorMessage("로그인 중 오류가 발생했습니다.");
+      setErrorMessage(t("loginError"));
     } finally {
       setLoading(false);
     }
@@ -59,8 +63,12 @@ export function LoginScreen() {
           onSubmit={handleSubmit}
           className="w-full max-w-[620px] rounded-[28px] bg-white px-8 py-12 shadow-[0_20px_60px_rgba(28,30,40,0.06)] sm:min-h-[560px] sm:px-16 sm:py-16 lg:min-h-[620px] lg:px-[72px] lg:py-[72px]"
         >
-          <h1 className="text-[44px] font-black leading-none tracking-normal text-[#1b1d25] sm:text-[54px]">
-            로그인(登录)
+          <div className="flex justify-end">
+            <UiLanguageSelect />
+          </div>
+
+          <h1 className="mt-8 text-[44px] font-black leading-none tracking-normal text-[#1b1d25] sm:text-[54px]">
+            {t("login")}
           </h1>
 
           <div className="mt-12 flex h-[76px] items-center gap-4 rounded-[18px] border border-[#d9dde8] bg-white px-6 transition focus-within:border-[#613bff] focus-within:shadow-[0_0_0_4px_rgba(141,116,255,0.18)]">
@@ -70,14 +78,14 @@ export function LoginScreen() {
               value={password}
               disabled={loading}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="비밀번호 입력"
-              aria-label="비밀번호 입력"
+              placeholder={t("passwordPlaceholder")}
+              aria-label={t("passwordPlaceholder")}
               className="min-w-0 flex-1 border-0 bg-transparent text-lg font-semibold text-[#1b1d25] outline-none placeholder:text-[#a1a6b8] disabled:cursor-not-allowed"
             />
             <button
               type="button"
               disabled={loading}
-              aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               onClick={() => setShowPassword((current) => !current)}
               className="grid size-11 shrink-0 place-items-center rounded-full text-[#9a9fb2] transition hover:bg-[#f3f0fa] hover:text-[#613bff] focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -103,7 +111,7 @@ export function LoginScreen() {
             disabled={loading}
             className="mt-9 h-[82px] w-full rounded-[18px] bg-[linear-gradient(90deg,#613bff_0%,#5a35f0_100%)] text-[22px] font-bold text-white shadow-[0_18px_32px_rgba(97,59,255,0.22)] transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[rgba(141,116,255,0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "확인 중..." : "로그인(登录)"}
+            {loading ? t("loggingIn") : t("login")}
           </button>
         </form>
       </section>
@@ -130,6 +138,8 @@ function RTTLogo() {
 }
 
 function LoginHeroVisual() {
+  const { t } = useUiLanguage();
+
   return (
     <div className="relative flex h-full min-h-[520px] max-w-[780px] items-center justify-start pt-20 lg:min-h-[calc(100dvh-112px)]">
       <div className="absolute inset-x-2 bottom-[9%] h-28 rounded-[100%] bg-[radial-gradient(circle,rgba(28,107,118,0.18)_0%,rgba(28,107,118,0)_68%)]" />
@@ -140,7 +150,7 @@ function LoginHeroVisual() {
         <div className="relative overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_28px_70px_rgba(23,32,52,0.16)]">
           <Image
             src="/images/login-ai-translation-hero.png"
-            alt="AI 실시간 번역 대화를 표현한 로그인 일러스트"
+            alt={t("loginHeroAlt")}
             width={1400}
             height={788}
             priority

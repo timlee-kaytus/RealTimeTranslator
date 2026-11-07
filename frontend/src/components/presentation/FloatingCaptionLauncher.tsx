@@ -10,11 +10,16 @@ import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNo
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import {
   LANGUAGE_FLAG_LABELS,
-  LANGUAGE_LABELS,
   type SupportedLanguage,
 } from "@/lib/types/language";
 import type { FloatingCaptionSettings } from "@/lib/types/settings";
 import { getPresentationSupport } from "@/lib/browser/featureDetection";
+import {
+  getLocalizedLanguageName,
+  useUiLanguage,
+  type UiLanguage,
+  type UiMessageKey,
+} from "@/lib/i18n/uiLanguage";
 
 type FloatingCaptionLauncherProps = {
   text: string;
@@ -32,6 +37,11 @@ type FloatingCaptionLine = {
   text: string;
 };
 type FloatingCaptionHistory = Record<FloatingCaptionRole, FloatingCaptionLine[]>;
+type FloatingUiLabels = {
+  language1: string;
+  language2: string;
+  captionWaiting: string;
+};
 
 const FLOATING_CAPTION_HISTORY_LIMIT = 16;
 
@@ -45,6 +55,7 @@ export function FloatingCaptionLauncher({
   secondaryFontSize,
   onSettingsChange,
 }: FloatingCaptionLauncherProps) {
+  const { language: uiLanguage, t } = useUiLanguage();
   const support = useMemo(() => getPresentationSupport(), []);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [backdropWindow, setBackdropWindow] = useState<Window | null>(null);
@@ -85,7 +96,11 @@ export function FloatingCaptionLauncher({
 
       nextWindow.document.open();
       nextWindow.document.write(
-        createFloatingCaptionMarkup(settings.backgroundOpacity),
+        createFloatingCaptionMarkup(
+          settings.backgroundOpacity,
+          uiLanguage,
+          t("appTitle"),
+        ),
       );
       nextWindow.document.close();
       syncFloatingCaptionDocument({
@@ -95,13 +110,15 @@ export function FloatingCaptionLauncher({
         secondaryLanguage,
         fontSize,
         secondaryFontSize: secondaryFontSize ?? fontSize,
+        uiLanguage,
+        labels: createFloatingUiLabels(t),
       });
       setPipWindow(nextWindow);
     } catch (error) {
       setErrorMessage(
         error instanceof DOMException && error.name === "NotAllowedError"
-          ? "플로팅 창은 브라우저가 인정한 직접 클릭에서만 열 수 있습니다."
-          : "플로팅 자막창을 열지 못했습니다.",
+          ? t("floatingDirectClickRequired")
+          : t("floatingOpenFailed"),
       );
     }
   }
@@ -131,7 +148,7 @@ export function FloatingCaptionLauncher({
 
     if (!nextWindow) {
       setErrorMessage(
-        "발표 배경창이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.",
+        t("backdropPopupBlocked"),
       );
       return;
     }
@@ -142,7 +159,15 @@ export function FloatingCaptionLauncher({
     ).href;
 
     nextWindow.document.open();
-    nextWindow.document.write(createPresentationBackdropMarkup(imageUrl));
+    nextWindow.document.write(
+      createPresentationBackdropMarkup({
+        imageUrl,
+        language: uiLanguage,
+        title: t("appTitle"),
+        fullscreenLabel: t("fullscreen"),
+        viewFullscreenLabel: t("viewFullscreen"),
+      }),
+    );
     nextWindow.document.close();
 
     try {
@@ -197,6 +222,8 @@ export function FloatingCaptionLauncher({
       secondaryLanguage,
       fontSize,
       secondaryFontSize: secondaryFontSize ?? fontSize,
+      uiLanguage,
+      labels: createFloatingUiLabels(t),
     });
 
     applyFloatingCaptionBackground(
@@ -212,6 +239,8 @@ export function FloatingCaptionLauncher({
     secondaryText,
     settings.backgroundOpacity,
     text,
+    t,
+    uiLanguage,
   ]);
 
   useEffect(() => {
@@ -242,13 +271,20 @@ export function FloatingCaptionLauncher({
       return;
     }
 
+    syncBackdropWindowLanguage(backdropWindow, {
+      language: uiLanguage,
+      title: t("appTitle"),
+      fullscreenLabel: t("fullscreen"),
+      viewFullscreenLabel: t("viewFullscreen"),
+    });
+
     const handlePageHide = () => setBackdropWindow(null);
     backdropWindow.addEventListener("pagehide", handlePageHide);
 
     return () => {
       backdropWindow.removeEventListener("pagehide", handlePageHide);
     };
-  }, [backdropWindow]);
+  }, [backdropWindow, t, uiLanguage]);
 
   return (
     <div className="rtt-card space-y-3 p-4">
@@ -257,7 +293,7 @@ export function FloatingCaptionLauncher({
       <div className="overflow-hidden rounded-[12px] border border-[#dedee5] bg-[rgba(148,151,169,0.08)]">
         <Image
           src="/images/presentation-caption-illustration.png"
-          alt="발표 화면 위에 자막이 표시되는 일러스트"
+          alt={t("presentationIllustrationAlt")}
           width={960}
           height={459}
           sizes="(min-width: 1024px) 360px, calc(100vw - 32px)"
@@ -274,8 +310,8 @@ export function FloatingCaptionLauncher({
           <PictureInPicture2 aria-hidden className="size-5 shrink-0" />
           <span className="leading-tight">
             {pipWindow && !pipWindow.closed
-              ? "플로팅 갱신"
-              : "플로팅 시작(开启悬浮窗)"}
+              ? t("floatingRefresh")
+              : t("floatingStart")}
           </span>
         </button>
         <button
@@ -286,8 +322,8 @@ export function FloatingCaptionLauncher({
           <MonitorUp aria-hidden className="size-5 shrink-0" />
           <span className="leading-tight">
             {backdropWindow && !backdropWindow.closed
-              ? "발표 배경 보기"
-              : "발표 배경 열기"}
+              ? t("presentationBackdropView")
+              : t("presentationBackdropOpen")}
           </span>
         </button>
       </div>
@@ -295,13 +331,25 @@ export function FloatingCaptionLauncher({
   );
 }
 
-function createPresentationBackdropMarkup(imageUrl: string) {
+function createPresentationBackdropMarkup({
+  imageUrl,
+  language,
+  title,
+  fullscreenLabel,
+  viewFullscreenLabel,
+}: {
+  imageUrl: string;
+  language: UiLanguage;
+  title: string;
+  fullscreenLabel: string;
+  viewFullscreenLabel: string;
+}) {
   return `<!doctype html>
-<html lang="ko">
+<html lang="${language}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KAYTUS Presentation Background</title>
+    <title>${title}</title>
     <style>
       * { box-sizing: border-box; }
       html, body {
@@ -353,8 +401,8 @@ function createPresentationBackdropMarkup(imageUrl: string) {
       id="fullscreen-control"
       class="fullscreen-control"
       type="button"
-      aria-label="전체 화면으로 보기"
-      title="전체 화면"
+      aria-label="${viewFullscreenLabel}"
+      title="${fullscreenLabel}"
     >&#x26F6;</button>
   </body>
 </html>`;
@@ -394,15 +442,41 @@ function requestBackdropFullscreen(targetWindow: Window) {
   }
 }
 
-function createFloatingCaptionMarkup(backgroundOpacity: number) {
+function syncBackdropWindowLanguage(
+  targetWindow: Window,
+  {
+    language,
+    title,
+    fullscreenLabel,
+    viewFullscreenLabel,
+  }: {
+    language: UiLanguage;
+    title: string;
+    fullscreenLabel: string;
+    viewFullscreenLabel: string;
+  },
+) {
+  const { document } = targetWindow;
+  document.documentElement.lang = language;
+  document.title = title;
+  const fullscreenControl = document.getElementById("fullscreen-control");
+  fullscreenControl?.setAttribute("aria-label", viewFullscreenLabel);
+  fullscreenControl?.setAttribute("title", fullscreenLabel);
+}
+
+function createFloatingCaptionMarkup(
+  backgroundOpacity: number,
+  language: UiLanguage,
+  title: string,
+) {
   const backgroundColor = createFloatingBackgroundColor(backgroundOpacity);
 
   return `<!doctype html>
-<html lang="ko">
+<html lang="${language}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>실시간 번역 자막</title>
+    <title>${title}</title>
     <style>
       * { box-sizing: border-box; }
       html, body {
@@ -608,6 +682,8 @@ function syncFloatingCaptionDocument({
   secondaryLanguage,
   fontSize,
   secondaryFontSize,
+  uiLanguage,
+  labels,
 }: {
   document: Document;
   history: FloatingCaptionHistory;
@@ -615,17 +691,21 @@ function syncFloatingCaptionDocument({
   secondaryLanguage: SupportedLanguage | null;
   fontSize: number;
   secondaryFontSize: number;
+  uiLanguage: UiLanguage;
+  labels: FloatingUiLabels;
 }) {
+  document.documentElement.lang = uiLanguage;
   updateFloatingCaptionBox({
     document,
     boxId: "caption-box-primary",
     labelId: "caption-label-primary",
     listId: "caption-list-primary",
-    label: `언어1 · ${LANGUAGE_FLAG_LABELS[primaryLanguage]} ${LANGUAGE_LABELS[primaryLanguage]}`,
+    label: `${labels.language1} · ${LANGUAGE_FLAG_LABELS[primaryLanguage]} ${getLocalizedLanguageName(primaryLanguage, uiLanguage)}`,
     language: primaryLanguage,
     lines: history.primary,
     fontSize,
     visible: true,
+    emptyText: labels.captionWaiting,
   });
   updateFloatingCaptionBox({
     document,
@@ -635,11 +715,12 @@ function syncFloatingCaptionDocument({
     label:
       secondaryLanguage === null
         ? ""
-        : `언어2 · ${LANGUAGE_FLAG_LABELS[secondaryLanguage]} ${LANGUAGE_LABELS[secondaryLanguage]}`,
+        : `${labels.language2} · ${LANGUAGE_FLAG_LABELS[secondaryLanguage]} ${getLocalizedLanguageName(secondaryLanguage, uiLanguage)}`,
     language: secondaryLanguage,
     lines: history.secondary,
     fontSize: secondaryFontSize,
     visible: secondaryLanguage !== null,
+    emptyText: labels.captionWaiting,
   });
 }
 
@@ -653,6 +734,7 @@ function updateFloatingCaptionBox({
   lines,
   fontSize,
   visible,
+  emptyText,
 }: {
   document: Document;
   boxId: string;
@@ -663,6 +745,7 @@ function updateFloatingCaptionBox({
   lines: FloatingCaptionLine[];
   fontSize: number;
   visible: boolean;
+  emptyText: string;
 }) {
   const boxElement = document.getElementById(boxId);
   const labelElement = document.getElementById(labelId);
@@ -683,7 +766,7 @@ function updateFloatingCaptionBox({
   if (lines.length === 0) {
     const emptyElement = document.createElement("p");
     emptyElement.className = "caption-empty";
-    emptyElement.textContent = "자막 대기 중";
+    emptyElement.textContent = emptyText;
     emptyElement.style.fontSize = `${fontSize}px`;
     listElement.append(emptyElement);
     return;
@@ -698,6 +781,16 @@ function updateFloatingCaptionBox({
     lineElement.style.fontSize = `${fontSize}px`;
     listElement.append(lineElement);
   });
+}
+
+function createFloatingUiLabels(
+  t: (key: UiMessageKey) => string,
+): FloatingUiLabels {
+  return {
+    language1: t("language1"),
+    language2: t("language2"),
+    captionWaiting: t("captionWaiting"),
+  };
 }
 
 function applyFloatingCaptionBackground(

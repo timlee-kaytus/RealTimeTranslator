@@ -49,9 +49,11 @@ import {
 } from "@/lib/realtime/sessionLifecycle";
 import { PRESENTATION_TRANSLATION_INSTRUCTIONS } from "@/lib/translation/realtimeTranslationInstructions";
 import {
+  getLocalizedLanguageName,
+  useUiLanguage,
+} from "@/lib/i18n/uiLanguage";
+import {
   LANGUAGE_FLAG_LABELS,
-  LANGUAGE_LABELS,
-  LANGUAGE_SELECT_LABELS,
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
 } from "@/lib/types/language";
@@ -1133,15 +1135,6 @@ export function PresentationMode() {
         <ErrorBanner message={errorMessage} />
       </div>
 
-      <CaptionPreview
-        language={outputLanguage}
-        text={caption.output.text}
-        fontSize={captionFontSize}
-        secondaryLanguage={selectedSecondaryOutputLanguage}
-        secondaryText={secondaryOutputText}
-        secondaryFontSize={secondaryCaptionFontSize}
-      />
-
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <CaptionSizeControls
           settings={settings}
@@ -1159,6 +1152,15 @@ export function PresentationMode() {
           onSettingsChange={setSettings}
         />
       </div>
+
+      <CaptionPreview
+        language={outputLanguage}
+        text={caption.output.text}
+        fontSize={captionFontSize}
+        secondaryLanguage={selectedSecondaryOutputLanguage}
+        secondaryText={secondaryOutputText}
+        secondaryFontSize={secondaryCaptionFontSize}
+      />
     </section>
   );
 }
@@ -1176,17 +1178,19 @@ function PresentationOutputLanguageSelect({
   onPrimaryChange,
   onSecondaryChange,
 }: PresentationOutputLanguageSelectProps) {
+  const { language: uiLanguage, t } = useUiLanguage();
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[#686b82]">
       <label
         htmlFor="presentation-output-language-primary"
         className="flex items-center gap-2 whitespace-nowrap"
       >
-        <span>출력언어1(输出语言1)</span>
+        <span>{t("outputLanguage1")}</span>
         <select
           id="presentation-output-language-primary"
           value={primaryLanguage}
-          aria-label={`출력언어1 ${LANGUAGE_LABELS[primaryLanguage]}`}
+          aria-label={`${t("outputLanguage1")} ${getLocalizedLanguageName(primaryLanguage, uiLanguage)}`}
           onChange={(event) =>
             onPrimaryChange(event.target.value as SupportedLanguage)
           }
@@ -1196,7 +1200,7 @@ function PresentationOutputLanguageSelect({
             <option
               key={language}
               value={language}
-              aria-label={LANGUAGE_SELECT_LABELS[language]}
+              aria-label={getLocalizedLanguageName(language, uiLanguage)}
             >
               {LANGUAGE_FLAG_LABELS[language]}
             </option>
@@ -1207,14 +1211,14 @@ function PresentationOutputLanguageSelect({
         htmlFor="presentation-output-language-secondary"
         className="flex items-center gap-2 whitespace-nowrap"
       >
-        <span>출력언어2(输出语言2)</span>
+        <span>{t("outputLanguage2")}</span>
         <select
           id="presentation-output-language-secondary"
           value={secondaryLanguage}
           aria-label={
             secondaryLanguage === "none"
-              ? "출력언어2 없음(无)"
-              : `출력언어2 ${LANGUAGE_LABELS[secondaryLanguage]}`
+              ? `${t("outputLanguage2")} ${t("none")}`
+              : `${t("outputLanguage2")} ${getLocalizedLanguageName(secondaryLanguage, uiLanguage)}`
           }
           onChange={(event) =>
             onSecondaryChange(
@@ -1223,14 +1227,14 @@ function PresentationOutputLanguageSelect({
           }
           className="rtt-select h-10 w-24 px-2 text-center text-base font-semibold"
         >
-          <option value="none">없음(无)</option>
+          <option value="none">{t("none")}</option>
           {SUPPORTED_LANGUAGES.filter(
             (language) => language !== primaryLanguage,
           ).map((language) => (
             <option
               key={language}
               value={language}
-              aria-label={LANGUAGE_SELECT_LABELS[language]}
+              aria-label={getLocalizedLanguageName(language, uiLanguage)}
             >
               {LANGUAGE_FLAG_LABELS[language]}
             </option>

@@ -1,9 +1,12 @@
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import {
   DETECTED_LANGUAGE_PLACEHOLDERS,
-  LANGUAGE_LABELS,
 } from "@/lib/types/language";
 import type { SupportedLanguage } from "@/lib/types/language";
+import {
+  getLocalizedLanguageName,
+  useUiLanguage,
+} from "@/lib/i18n/uiLanguage";
 
 type CaptionPreviewProps = {
   language: SupportedLanguage;
@@ -22,15 +25,16 @@ export function CaptionPreview({
   secondaryText = "",
   secondaryFontSize,
 }: CaptionPreviewProps) {
+  const { language: uiLanguage, t } = useUiLanguage();
   const languageLabel =
     secondaryLanguage === null
-      ? LANGUAGE_LABELS[language]
-      : `${LANGUAGE_LABELS[language]} / ${LANGUAGE_LABELS[secondaryLanguage]}`;
+      ? getLocalizedLanguageName(language, uiLanguage)
+      : `${getLocalizedLanguageName(language, uiLanguage)} / ${getLocalizedLanguageName(secondaryLanguage, uiLanguage)}`;
 
   return (
     <div className="rtt-card flex min-h-44 flex-col p-4 text-[#101114] md:min-h-52">
       <div className="flex items-center justify-between gap-3 text-sm font-bold text-[#686b82]">
-        <span>미리보기</span>
+        <span>{t("preview")}</span>
         <span>{languageLabel}</span>
       </div>
       <div

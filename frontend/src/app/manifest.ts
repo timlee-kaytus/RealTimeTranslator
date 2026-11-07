@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "실시간 번역 자막기",
-    short_name: "번역 자막기",
-    description: "한국어, 영어, 중국어 실시간 번역 자막 PWA",
+    name: "KAYTUS RTT System",
+    short_name: "KAYTUS RTT",
+    description: "Real-time Korean, English, Chinese, and Japanese translation",
     start_url: "/",
     display: "standalone",
     background_color: "#f4f6f6",

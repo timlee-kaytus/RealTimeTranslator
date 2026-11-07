@@ -1,5 +1,7 @@
 "use client";
 
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
+
 type MicLevelMeterProps = {
   level: number;
   speaking: boolean;
@@ -11,6 +13,7 @@ export function MicLevelMeter({
   speaking,
   disabled = false,
 }: MicLevelMeterProps) {
+  const { t } = useUiLanguage();
   const percent = Math.round(Math.min(1, Math.max(0, level) * 2) * 100);
   const meterColor = speaking ? "bg-[#149e61]" : "bg-[#7132f5]";
 
@@ -24,9 +27,9 @@ export function MicLevelMeter({
             : "border-[#dedee5] bg-white text-[#686b82]"
       }`}
     >
-      <span className="shrink-0 text-xs font-bold">마이크(麦克风)</span>
+      <span className="shrink-0 text-xs font-bold">{t("microphone")}</span>
       <div
-        aria-label="마이크 입력 레벨"
+        aria-label={t("microphoneInputLevel")}
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={disabled ? 0 : percent}

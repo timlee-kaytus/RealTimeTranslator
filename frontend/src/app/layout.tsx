@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
+import { UiLanguageProvider } from "@/lib/i18n/uiLanguage";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "실시간 번역 자막기",
-  description: "한국어, 영어, 중국어 실시간 번역 자막 PWA",
+  title: "KAYTUS RTT System",
+  description: "Real-time Korean, English, Chinese, and Japanese translation",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "번역 자막기",
+    title: "KAYTUS RTT",
   },
 };
 
@@ -40,7 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <UiLanguageProvider>{children}</UiLanguageProvider>
+      </body>
     </html>
   );
 }

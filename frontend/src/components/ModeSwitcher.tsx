@@ -2,6 +2,7 @@
 
 import { Languages, Presentation } from "lucide-react";
 
+import { useUiLanguage, type UiMessageKey } from "@/lib/i18n/uiLanguage";
 import type { TranslationMode } from "@/lib/types/realtime";
 
 type ModeSwitcherProps = {
@@ -12,20 +13,22 @@ type ModeSwitcherProps = {
 const modes = [
   {
     value: "conversation" as const,
-    label: "통역사 모드(口译模式)",
+    labelKey: "interpreterMode" as UiMessageKey,
     Icon: Languages,
   },
   {
     value: "presentation" as const,
-    label: "발표 모드(演讲模式)",
+    labelKey: "presentationMode" as UiMessageKey,
     Icon: Presentation,
   },
 ];
 
 export function ModeSwitcher({ value, onChange }: ModeSwitcherProps) {
+  const { t } = useUiLanguage();
+
   return (
     <div className="grid min-h-11 w-full grid-cols-2 rounded-[12px] border border-[#dedee5] bg-white p-1 shadow-[rgba(16,24,40,0.04)_0px_1px_4px] sm:w-auto">
-      {modes.map(({ value: mode, label, Icon }) => {
+      {modes.map(({ value: mode, labelKey, Icon }) => {
         const selected = value === mode;
 
         return (
@@ -41,7 +44,7 @@ export function ModeSwitcher({ value, onChange }: ModeSwitcherProps) {
             }`}
           >
             <Icon aria-hidden className="size-4" />
-            {label}
+            {t(labelKey)}
           </button>
         );
       })}

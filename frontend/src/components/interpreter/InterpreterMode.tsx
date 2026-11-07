@@ -5,20 +5,25 @@ import { AudioLines, Mic, MicOff } from "lucide-react";
 import { VoiceOrb } from "@/components/interpreter/VoiceOrb";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { useRealtimeInterpreter } from "@/hooks/useRealtimeInterpreter";
+import {
+  getLocalizedLanguageName,
+  useUiLanguage,
+  type UiMessageKey,
+} from "@/lib/i18n/uiLanguage";
 import type { InterpreterStatus } from "@/lib/types/interpreter";
 
-const statusMessages: Record<InterpreterStatus, string> = {
-  idle: "실시간 통역 대기 중(实时口译等待中)",
-  requesting_microphone: "마이크 권한 확인 중",
-  connecting: "통역 연결 중",
-  listening: "듣는 중",
-  user_speaking: "음성을 듣고 있습니다",
-  interpreting: "통역 중",
-  assistant_speaking: "통역 음성 출력 중",
-  muted: "듣기 대기 중",
-  reconnecting: "통역 세션 재연결 중",
-  error: "연결 오류",
-  stopped: "통역이 중지되었습니다",
+const statusMessageKeys: Record<InterpreterStatus, UiMessageKey> = {
+  idle: "interpreterIdle",
+  requesting_microphone: "interpreterRequestingMicrophone",
+  connecting: "interpreterConnecting",
+  listening: "interpreterListening",
+  user_speaking: "interpreterUserSpeaking",
+  interpreting: "interpreterInterpreting",
+  assistant_speaking: "interpreterAssistantSpeaking",
+  muted: "interpreterMuted",
+  reconnecting: "interpreterReconnecting",
+  error: "interpreterError",
+  stopped: "interpreterStopped",
 };
 
 const statusDotClasses: Record<InterpreterStatus, string> = {
@@ -36,6 +41,7 @@ const statusDotClasses: Record<InterpreterStatus, string> = {
 };
 
 export function InterpreterMode() {
+  const { language, t } = useUiLanguage();
   const {
     status,
     active,
@@ -73,11 +79,11 @@ export function InterpreterMode() {
       <div className="flex w-full max-w-3xl flex-col items-center gap-6 text-center">
         <div className="flex items-center gap-3 text-sm font-black text-[#4f5368] sm:text-base">
           <span className="whitespace-nowrap rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
-            한국어(韩语)
+            {getLocalizedLanguageName("ko", language)}
           </span>
           <AudioLines aria-hidden className="size-5 text-[#7132f5]" />
           <span className="whitespace-nowrap rounded-[8px] border border-[#dedee5] bg-white px-3 py-1.5 shadow-[rgba(16,24,40,0.04)_0px_1px_4px]">
-            中文(중국어)
+            {getLocalizedLanguageName("zh", language)}
           </span>
         </div>
 
@@ -101,12 +107,12 @@ export function InterpreterMode() {
               isAnimatedStatus(status) ? "interpreter-status-dot" : ""
             }`}
           />
-          {statusMessages[status]}
+          {t(statusMessageKeys[status])}
         </div>
 
         <button
           type="button"
-          aria-label={listening ? "듣기 종료" : "듣기 시작"}
+          aria-label={listening ? t("stopListening") : t("startListening")}
           aria-pressed={listening}
           disabled={listeningControlDisabled}
           onClick={handleListeningToggle}
@@ -124,12 +130,11 @@ export function InterpreterMode() {
             <Mic aria-hidden className="size-5" />
           )}
           {busy ? (
-            "통역 연결 중..."
+            t("interpreterConnectingAction")
           ) : (
             <span className="flex flex-col items-center leading-tight">
-              <span>{listening ? "듣기 종료" : "듣기 시작"}</span>
-              <span className="mt-0.5 text-xs font-bold opacity-90">
-                {listening ? "(停止聆听)" : "(开始聆听)"}
+              <span>
+                {listening ? t("stopListening") : t("startListening")}
               </span>
             </span>
           )}

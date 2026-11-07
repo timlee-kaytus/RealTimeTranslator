@@ -1,23 +1,24 @@
 "use client";
 
 import type { ConversationActivityStatus } from "@/lib/types/realtime";
+import { useUiLanguage, type UiMessageKey } from "@/lib/i18n/uiLanguage";
 
 type ConversationActivityHintProps = {
   status: ConversationActivityStatus;
   micLevel?: number;
 };
 
-const activityMessages: Record<ConversationActivityStatus, string> = {
-  idle: "대기 중",
-  connecting: "연결 중입니다.",
-  warming_up: "통역 준비 중입니다. 잠시 후 말해 주세요.",
-  ready: "준비 완료. 이제 말하셔도 됩니다.",
-  listening: "듣는 중입니다.",
-  speech_detected: "말이 감지되었습니다.",
-  translating: "번역 중입니다.",
-  reconnecting: "재연결 중입니다.",
-  error: "오류가 발생했습니다.",
-  stopped: "중지됨",
+const activityMessageKeys: Record<ConversationActivityStatus, UiMessageKey> = {
+  idle: "activityIdle",
+  connecting: "activityConnecting",
+  warming_up: "activityWarmingUp",
+  ready: "activityReady",
+  listening: "activityListening",
+  speech_detected: "activitySpeechDetected",
+  translating: "activityTranslating",
+  reconnecting: "activityReconnecting",
+  error: "activityError",
+  stopped: "activityStopped",
 };
 
 const activityClasses: Record<ConversationActivityStatus, string> = {
@@ -43,12 +44,14 @@ const activityClasses: Record<ConversationActivityStatus, string> = {
 export function ConversationActivityHint({
   status,
 }: ConversationActivityHintProps) {
+  const { t } = useUiLanguage();
+
   return (
     <div
       aria-live="polite"
       className={`inline-flex min-h-8 w-fit max-w-full items-center justify-center rounded-[8px] border px-3 py-1 text-center text-xs font-bold ${activityClasses[status]}`}
     >
-      {activityMessages[status]}
+      {t(activityMessageKeys[status])}
     </div>
   );
 }

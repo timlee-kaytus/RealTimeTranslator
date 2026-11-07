@@ -2,6 +2,7 @@
 
 import { MicOff } from "lucide-react";
 
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
 import type { InterpreterStatus } from "@/lib/types/interpreter";
 
 type VoiceOrbProps = {
@@ -25,13 +26,14 @@ export function VoiceOrb({
   muted,
   onToggleListening,
 }: VoiceOrbProps) {
+  const { t } = useUiLanguage();
   const disabled = busy;
   const listening = active && !muted;
   const level = selectVisibleLevel(status, inputLevel, outputLevel, muted);
   const processing = status === "interpreting" || status === "reconnecting";
   const speaking =
     status === "user_speaking" || status === "assistant_speaking";
-  const title = listening ? "듣기 종료" : "듣기 시작";
+  const title = listening ? t("stopListening") : t("startListening");
 
   return (
     <div className="relative shrink-0">
@@ -39,9 +41,7 @@ export function VoiceOrb({
         role="note"
         className="pointer-events-none absolute right-0 top-8 z-10 max-w-[210px] rounded-[10px] border border-[#d8ccff] bg-white px-3 py-2 text-left text-xs font-bold leading-snug text-[#4f5368] shadow-[0_8px_24px_rgba(77,42,157,0.14)] sm:-right-24 sm:top-5 sm:max-w-[280px] sm:text-sm"
       >
-        {listening
-          ? "클릭시 듣기 종료(点击后停止聆听)"
-          : "클릭시 듣기 시작(点击后开始聆听)"}
+        {listening ? t("clickToStopListening") : t("clickToStartListening")}
         <span
           aria-hidden="true"
           className="absolute -bottom-2 left-7 size-4 rotate-45 border-b border-r border-[#d8ccff] bg-white sm:left-10"
@@ -53,7 +53,7 @@ export function VoiceOrb({
         aria-label={title}
         aria-pressed={listening}
         disabled={disabled}
-        title={disabled ? "통역 연결 중입니다." : title}
+        title={disabled ? t("interpreterConnecting") : title}
         onClick={() => void onToggleListening()}
         className={`interpreter-orb relative grid size-64 shrink-0 place-items-center rounded-full border-[10px] sm:size-72 md:size-80 ${
           muted

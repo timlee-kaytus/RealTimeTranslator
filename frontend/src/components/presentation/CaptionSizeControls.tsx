@@ -8,6 +8,7 @@ import {
   FLOATING_CAPTION_FONT_SIZE_MIN,
   type FloatingCaptionSettings,
 } from "@/lib/types/settings";
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
 
 type CaptionSizeControlsProps = {
   settings: FloatingCaptionSettings;
@@ -18,6 +19,7 @@ export function CaptionSizeControls({
   settings,
   onSettingsChange,
 }: CaptionSizeControlsProps) {
+  const { t } = useUiLanguage();
   function adjustFontSize(delta: number) {
     onSettingsChange((current) => ({
       ...current,
@@ -49,20 +51,20 @@ export function CaptionSizeControls({
     <div className="rtt-card space-y-4 p-4">
       <div className="flex items-center gap-2 text-sm font-black text-[#101114]">
         <Type aria-hidden className="size-4 text-[#7132f5]" />
-        자막 크기
+        {t("captionSize")}
       </div>
 
       <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
         <button
           type="button"
-          aria-label="글자 작게"
+          aria-label={t("decreaseFontSize")}
           onClick={() => adjustFontSize(-4)}
           className="rtt-icon-button"
         >
           <Minus aria-hidden className="size-5" />
         </button>
         <input
-          aria-label="글자 크기"
+          aria-label={t("fontSize")}
           type="range"
           min={FLOATING_CAPTION_FONT_SIZE_MIN}
           max={FLOATING_CAPTION_FONT_SIZE_MAX}
@@ -78,7 +80,7 @@ export function CaptionSizeControls({
         />
         <button
           type="button"
-          aria-label="글자 크게"
+          aria-label={t("increaseFontSize")}
           onClick={() => adjustFontSize(4)}
           className="rtt-icon-button"
         >
@@ -89,7 +91,7 @@ export function CaptionSizeControls({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-black text-[#101114]">
           <Blend aria-hidden className="size-4 text-[#7132f5]" />
-          배경 밝기
+          {t("backgroundBrightness")}
         </div>
         <span className="text-sm font-black tabular-nums text-[#686b82]">
           {transparencyPercent}%
@@ -99,14 +101,14 @@ export function CaptionSizeControls({
       <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
         <button
           type="button"
-          aria-label="투명도 낮춤"
+          aria-label={t("decreaseTransparency")}
           onClick={() => adjustTransparency(-0.1)}
           className="rtt-icon-button"
         >
           <Minus aria-hidden className="size-5" />
         </button>
         <input
-          aria-label="배경 투명도"
+          aria-label={t("backgroundTransparency")}
           type="range"
           min={15}
           max={85}
@@ -119,7 +121,7 @@ export function CaptionSizeControls({
         />
         <button
           type="button"
-          aria-label="투명도 높임"
+          aria-label={t("increaseTransparency")}
           onClick={() => adjustTransparency(0.1)}
           className="rtt-icon-button"
         >

@@ -2,6 +2,8 @@
 
 import { Mic, Square } from "lucide-react";
 
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
+
 type MicToggleButtonProps = {
   active: boolean;
   compact?: boolean;
@@ -15,6 +17,7 @@ export function MicToggleButton({
   disabled = false,
   onClick,
 }: MicToggleButtonProps) {
+  const { t } = useUiLanguage();
   const Icon = active ? Square : Mic;
   const buttonClassName = compact
     ? `inline-flex h-9 w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border px-3 !text-xs font-bold transition disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#c4c6d1] disabled:text-white ${
@@ -38,7 +41,7 @@ export function MicToggleButton({
       className={buttonClassName}
     >
       <Icon aria-hidden className={iconClassName} />
-      {active ? "통역 중지" : "실시간 번역(开始翻译)"}
+      {active ? t("stopTranslation") : t("startTranslation")}
     </button>
   );
 }

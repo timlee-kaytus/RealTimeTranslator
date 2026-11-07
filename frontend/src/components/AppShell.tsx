@@ -6,11 +6,14 @@ import { LogOut } from "lucide-react";
 
 import { ModeSwitcher } from "@/components/ModeSwitcher";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
+import { UiLanguageSelect } from "@/components/UiLanguageSelect";
 import { InterpreterMode } from "@/components/interpreter/InterpreterMode";
 import { PresentationMode } from "@/components/presentation/PresentationMode";
+import { useUiLanguage } from "@/lib/i18n/uiLanguage";
 import type { TranslationMode } from "@/lib/types/realtime";
 
 export function AppShell() {
+  const { t } = useUiLanguage();
   const [mode, setMode] = useState<TranslationMode>("conversation");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -36,18 +39,18 @@ export function AppShell() {
           <div className="flex min-w-0 items-center gap-3">
             <Image
               src="/images/conversation-logo-illustration.png"
-              alt="서로 다른 언어로 대화하는 두 사람"
+              alt={t("conversationLogoAlt")}
               width={96}
               height={54}
               priority
               className="aspect-video h-10 w-auto shrink-0 rounded-lg border border-[#dedee5] object-cover shadow-[0_1px_4px_rgba(16,24,40,0.04)] sm:h-12"
             />
-            <h1 className="text-lg font-black leading-tight tracking-normal text-[#101114]">
-              <span className="block">실시간 번역 자막기</span>
-              <span className="block text-[#7132f5]">实时翻译字幕机</span>
+            <h1 className="max-w-56 text-lg font-black leading-tight tracking-normal text-[#101114]">
+              <span className="block">{t("appTitle")}</span>
             </h1>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <UiLanguageSelect compact />
             <ModeSwitcher value={mode} onChange={setMode} />
             <button
               type="button"
@@ -56,7 +59,7 @@ export function AppShell() {
               className="inline-flex min-h-11 self-start items-center justify-center gap-2 whitespace-nowrap rounded-[12px] border border-[#dedee5] bg-white px-4 text-sm font-bold text-[#4f5368] shadow-[rgba(16,24,40,0.04)_0px_1px_4px] transition hover:border-[#c7c3f5] hover:bg-[#f4f2ff] hover:text-[#5741d8] disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
             >
               <LogOut aria-hidden className="size-4" />
-              {isLoggingOut ? "Logging Out..." : "Log Out"}
+              {isLoggingOut ? t("loggingOut") : t("logOut")}
             </button>
           </div>
         </div>
