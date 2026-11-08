@@ -64,10 +64,12 @@ export type PresentationCaptionEvent = {
   output: {
     language: SupportedLanguage;
     text: string;
+    isFinal: boolean;
   };
   secondaryOutput?: {
     language: SupportedLanguage;
     text: string;
+    isFinal: boolean;
   };
   isFinal: boolean;
   timestamp: string;

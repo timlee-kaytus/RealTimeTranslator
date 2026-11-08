@@ -8,6 +8,7 @@ import { MonitorUp, PictureInPicture2 } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { BrowserSupportNotice } from "@/components/presentation/BrowserSupportNotice";
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
+import { isSameCaptionRevision } from "@/lib/caption/captionSimilarity";
 import {
   LANGUAGE_FLAG_LABELS,
   type SupportedLanguage,
@@ -24,8 +25,10 @@ import {
 type FloatingCaptionLauncherProps = {
   text: string;
   language: SupportedLanguage;
+  primaryCaptionIsFinal: boolean;
   secondaryText?: string;
   secondaryLanguage?: SupportedLanguage | null;
+  secondaryCaptionIsFinal?: boolean;
   settings: FloatingCaptionSettings;
   fontSize: number;
   secondaryFontSize?: number;
@@ -35,6 +38,7 @@ type FloatingCaptionRole = "primary" | "secondary";
 type FloatingCaptionLine = {
   id: string;
   text: string;
+  isFinal: boolean;
 };
 type FloatingCaptionHistory = Record<FloatingCaptionRole, FloatingCaptionLine[]>;
 type FloatingUiLabels = {
@@ -48,8 +52,10 @@ const FLOATING_CAPTION_HISTORY_LIMIT = 16;
 export function FloatingCaptionLauncher({
   text,
   language,
+  primaryCaptionIsFinal,
   secondaryText = "",
   secondaryLanguage = null,
+  secondaryCaptionIsFinal = false,
   settings,
   fontSize,
   secondaryFontSize,
@@ -199,6 +205,7 @@ export function FloatingCaptionLauncher({
       role: "primary",
       text,
       language,
+      isFinal: primaryCaptionIsFinal,
       nextLineId: () => {
         captionLineIndexRef.current += 1;
         return `primary-${captionLineIndexRef.current}`;
@@ -209,6 +216,7 @@ export function FloatingCaptionLauncher({
       role: "secondary",
       text: secondaryText,
       language: secondaryLanguage,
+      isFinal: secondaryCaptionIsFinal,
       nextLineId: () => {
         captionLineIndexRef.current += 1;
         return `secondary-${captionLineIndexRef.current}`;
@@ -234,6 +242,8 @@ export function FloatingCaptionLauncher({
     fontSize,
     language,
     pipWindow,
+    primaryCaptionIsFinal,
+    secondaryCaptionIsFinal,
     secondaryFontSize,
     secondaryLanguage,
     secondaryText,
@@ -623,12 +633,14 @@ function syncFloatingCaptionHistory({
   role,
   text,
   language,
+  isFinal,
   nextLineId,
 }: {
   history: FloatingCaptionHistory;
   role: FloatingCaptionRole;
   text: string;
   language: SupportedLanguage | null;
+  isFinal: boolean;
   nextLineId: () => string;
 }) {
   if (language === null) {
@@ -647,22 +659,21 @@ function syncFloatingCaptionHistory({
   const [latestLine] = history[role];
 
   if (!latestLine) {
-    history[role] = [{ id: nextLineId(), text: nextText }];
+    history[role] = [{ id: nextLineId(), text: nextText, isFinal }];
     return;
   }
 
   if (latestLine.text === nextText) {
+    latestLine.isFinal = latestLine.isFinal || isFinal;
     return;
   }
 
-  if (
-    nextText.startsWith(latestLine.text) ||
-    latestLine.text.startsWith(nextText)
-  ) {
+  if (!latestLine.isFinal || isSameCaptionRevision(latestLine.text, nextText)) {
     history[role] = [
       {
         ...latestLine,
         text: nextText,
+        isFinal: latestLine.isFinal || isFinal,
       },
       ...history[role].slice(1),
     ];
@@ -670,7 +681,7 @@ function syncFloatingCaptionHistory({
   }
 
   history[role] = [
-    { id: nextLineId(), text: nextText },
+    { id: nextLineId(), text: nextText, isFinal },
     ...history[role],
   ].slice(0, FLOATING_CAPTION_HISTORY_LIMIT);
 }

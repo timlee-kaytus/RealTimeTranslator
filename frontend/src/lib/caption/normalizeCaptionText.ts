@@ -8,7 +8,10 @@ export function normalizeCaptionText(
     return "";
   }
 
+  const ellipsisPunctuation =
+    language === "zh" || language === "ja" ? "。" : ".";
   const normalizedText = text
+    .replace(/(?:\.{3,}|…+)/gu, ellipsisPunctuation)
     .replace(/[\t\f\v]+/g, " ")
     .replace(/ {2,}/g, " ")
     .replace(/\s+([,.!?;:%])/g, "$1")

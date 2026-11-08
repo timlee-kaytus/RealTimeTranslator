@@ -29,6 +29,7 @@ import {
 } from "@/components/presentation/PptCaptionControls";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
+import { isSameCaptionRevision } from "@/lib/caption/captionSimilarity";
 import {
   getLocalizedLanguageName,
   useUiLanguage,
@@ -60,10 +61,11 @@ type PptModeWorkspaceProps = {
   primaryLanguage: SupportedLanguage;
   primaryText: string;
   primaryFontSize: number;
-  captionIsFinal: boolean;
+  primaryCaptionIsFinal: boolean;
   secondaryLanguage?: SupportedLanguage | null;
   secondaryText?: string;
   secondaryFontSize?: number;
+  secondaryCaptionIsFinal?: boolean;
   settings: FloatingCaptionSettings;
   onSettingsChange: Dispatch<SetStateAction<FloatingCaptionSettings>>;
 };
@@ -74,10 +76,11 @@ export function PptModeWorkspace({
   primaryLanguage,
   primaryText,
   primaryFontSize,
-  captionIsFinal,
+  primaryCaptionIsFinal,
   secondaryLanguage = null,
   secondaryText = "",
   secondaryFontSize,
+  secondaryCaptionIsFinal = false,
   settings,
   onSettingsChange,
 }: PptModeWorkspaceProps) {
@@ -196,23 +199,28 @@ export function PptModeWorkspace({
   }, [primaryLanguage, secondaryLanguage]);
 
   useEffect(() => {
-    if (!captionIsFinal) {
+    if (!primaryCaptionIsFinal && !secondaryCaptionIsFinal) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
       setCaptionHistory((current) => ({
-        primary: addFinalCaptionToHistory(current.primary, primaryText),
-        secondary: secondaryLanguage
+        primary: primaryCaptionIsFinal
+          ? addFinalCaptionToHistory(current.primary, primaryText)
+          : current.primary,
+        secondary: secondaryLanguage && secondaryCaptionIsFinal
           ? addFinalCaptionToHistory(current.secondary, secondaryText)
-          : [],
+          : secondaryLanguage
+            ? current.secondary
+            : [],
       }));
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
   }, [
-    captionIsFinal,
+    primaryCaptionIsFinal,
     primaryText,
+    secondaryCaptionIsFinal,
     secondaryLanguage,
     secondaryText,
   ]);
@@ -805,11 +813,7 @@ function addFinalCaptionToHistory(
     return history;
   }
 
-  if (
-    latestCaption &&
-    (normalizedText.startsWith(latestCaption) ||
-      latestCaption.startsWith(normalizedText))
-  ) {
+  if (latestCaption && isSameCaptionRevision(latestCaption, normalizedText)) {
     return [normalizedText, ...history.slice(1)].slice(
       0,
       PPT_CAPTION_HISTORY_LIMIT,
@@ -825,8 +829,10 @@ function createCaptionHistoryDisplayText(
 ): string {
   const normalizedCurrentText = currentText.trim();
   const visibleHistory =
-    normalizedCurrentText && history[0] === normalizedCurrentText
-      ? history
+    normalizedCurrentText &&
+    history[0] &&
+    isSameCaptionRevision(history[0], normalizedCurrentText)
+      ? [normalizedCurrentText, ...history.slice(1)]
       : normalizedCurrentText
         ? [normalizedCurrentText, ...history]
         : history;

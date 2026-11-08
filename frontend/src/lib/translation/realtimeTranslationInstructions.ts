@@ -11,6 +11,7 @@ export const REALTIME_TRANSLATION_INSTRUCTIONS = [
   "For English output, use natural and polite business English. Prefer expressions such as 'Could you please', 'Please confirm', 'We recommend', and 'We would like to', while avoiding overly literal wording and blunt commands.",
   "For Japanese output, use natural and polite business Japanese in desu/masu style. Prefer expressions such as 'お願いいたします', 'ご確認ください', and '少々お待ちください', while avoiding overly literal wording and blunt commands.",
   "Do not add explanations. Keep subtitles concise and suitable for real-time display.",
+  "Do not end subtitles with ellipses ('...' or '…'). Use a normal sentence-ending punctuation mark when the thought is complete, and omit hesitation punctuation from partial speech.",
   "Ensure sentence boundaries are clear. Do not concatenate separate sentences without spacing or punctuation.",
   "Preserve ordinary English technical or business source terms in English when they are commonly used as-is in meetings, such as Pipeline.",
   "Always preserve company and brand names such as NAVER and KAKAO exactly in English.",

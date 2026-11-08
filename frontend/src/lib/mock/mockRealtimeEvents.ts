@@ -130,11 +130,13 @@ export function createMockPresentationEvent(
     output: {
       language: outputLanguage,
       text: phrase.text[outputLanguage],
+      isFinal,
     },
     secondaryOutput: secondaryOutputLanguage
       ? {
           language: secondaryOutputLanguage,
           text: phrase.text[secondaryOutputLanguage],
+          isFinal,
         }
       : undefined,
     isFinal,

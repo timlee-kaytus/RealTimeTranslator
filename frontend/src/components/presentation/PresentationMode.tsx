@@ -1023,9 +1023,11 @@ export function PresentationMode({
           ? {
               language: secondaryCaption.language,
               text: secondaryCaption.text,
+              isFinal: secondaryCaption.isFinal,
             }
           : undefined,
         sourceCaptionStateRef.current.detectedLanguage,
+        primaryCaption.isFinal,
       ),
     );
   }
@@ -1147,10 +1149,11 @@ export function PresentationMode({
         primaryLanguage={outputLanguage}
         primaryText={caption.output.text}
         primaryFontSize={captionFontSize}
-        captionIsFinal={caption.isFinal}
+        primaryCaptionIsFinal={caption.output.isFinal}
         secondaryLanguage={selectedSecondaryOutputLanguage}
         secondaryText={secondaryOutputText}
         secondaryFontSize={secondaryCaptionFontSize}
+        secondaryCaptionIsFinal={secondaryOutput?.isFinal}
         settings={settings}
         onSettingsChange={setSettings}
       />
@@ -1175,8 +1178,10 @@ export function PresentationMode({
         <FloatingCaptionLauncher
           text={caption.output.text}
           language={outputLanguage}
+          primaryCaptionIsFinal={caption.output.isFinal}
           secondaryText={secondaryOutputText}
           secondaryLanguage={selectedSecondaryOutputLanguage}
+          secondaryCaptionIsFinal={secondaryOutput?.isFinal}
           settings={settings}
           fontSize={captionFontSize}
           secondaryFontSize={secondaryCaptionFontSize}
@@ -1436,8 +1441,12 @@ function createPresentationCaption(
   language: SupportedLanguage,
   sessionId: string,
   isFinal = false,
-  secondaryOutput?: PresentationCaptionEvent["secondaryOutput"],
+  secondaryOutput?: Omit<
+    NonNullable<PresentationCaptionEvent["secondaryOutput"]>,
+    "isFinal"
+  > & { isFinal?: boolean },
   detectedLanguage?: DetectedSupportedLanguage,
+  outputIsFinal = isFinal,
 ): PresentationCaptionEvent {
   return {
     type: isFinal ? "caption_final" : "caption_delta",
@@ -1447,6 +1456,7 @@ function createPresentationCaption(
     output: {
       language,
       text: normalizeCaptionText(text, language),
+      isFinal: outputIsFinal,
     },
     secondaryOutput: secondaryOutput
       ? {
@@ -1455,6 +1465,7 @@ function createPresentationCaption(
             secondaryOutput.text,
             secondaryOutput.language,
           ),
+          isFinal: secondaryOutput.isFinal ?? isFinal,
         }
       : undefined,
     isFinal,
