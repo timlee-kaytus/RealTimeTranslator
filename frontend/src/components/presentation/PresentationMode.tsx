@@ -1147,6 +1147,7 @@ export function PresentationMode({
         primaryLanguage={outputLanguage}
         primaryText={caption.output.text}
         primaryFontSize={captionFontSize}
+        captionIsFinal={caption.isFinal}
         secondaryLanguage={selectedSecondaryOutputLanguage}
         secondaryText={secondaryOutputText}
         secondaryFontSize={secondaryCaptionFontSize}

@@ -45,6 +45,7 @@ const DEFAULT_CAPTION_SIZE_RATIO = 0.24;
 const MIN_CAPTION_SIZE_RATIO = 0.1;
 const MAX_CAPTION_SIZE_RATIO = 0.55;
 const MAX_DYNAMIC_CAPTION_LINES = 12;
+const PPT_CAPTION_HISTORY_LIMIT = 16;
 
 type CaptionResizeSession = {
   pointerId: number;
@@ -59,6 +60,7 @@ type PptModeWorkspaceProps = {
   primaryLanguage: SupportedLanguage;
   primaryText: string;
   primaryFontSize: number;
+  captionIsFinal: boolean;
   secondaryLanguage?: SupportedLanguage | null;
   secondaryText?: string;
   secondaryFontSize?: number;
@@ -72,6 +74,7 @@ export function PptModeWorkspace({
   primaryLanguage,
   primaryText,
   primaryFontSize,
+  captionIsFinal,
   secondaryLanguage = null,
   secondaryText = "",
   secondaryFontSize,
@@ -83,6 +86,10 @@ export function PptModeWorkspace({
   const stageRef = useRef<HTMLDivElement | null>(null);
   const viewerControllerRef = useRef<PptxViewerController | null>(null);
   const captionResizeSessionRef = useRef<CaptionResizeSession | null>(null);
+  const previousCaptionLanguagesRef = useRef({
+    primary: primaryLanguage,
+    secondary: secondaryLanguage,
+  });
   const [presentationFile, setPresentationFile] = useState<File | null>(null);
   const [presentationError, setPresentationError] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -94,6 +101,10 @@ export function PptModeWorkspace({
   const [captionSizeRatio, setCaptionSizeRatio] = useState(
     DEFAULT_CAPTION_SIZE_RATIO,
   );
+  const [captionHistory, setCaptionHistory] = useState({
+    primary: [] as string[],
+    secondary: [] as string[],
+  });
 
   const navigateToSlide = useCallback(
     async (direction: -1 | 1) => {
@@ -166,6 +177,46 @@ export function PptModeWorkspace({
     return () => window.cancelAnimationFrame(animationFrame);
   }, [captionPosition, captionSizeRatio]);
 
+  useEffect(() => {
+    const previousLanguages = previousCaptionLanguagesRef.current;
+    const primaryChanged = previousLanguages.primary !== primaryLanguage;
+    const secondaryChanged =
+      previousLanguages.secondary !== secondaryLanguage;
+
+    if (primaryChanged || secondaryChanged) {
+      setCaptionHistory((current) => ({
+        primary: primaryChanged ? [] : current.primary,
+        secondary: secondaryChanged ? [] : current.secondary,
+      }));
+      previousCaptionLanguagesRef.current = {
+        primary: primaryLanguage,
+        secondary: secondaryLanguage,
+      };
+    }
+  }, [primaryLanguage, secondaryLanguage]);
+
+  useEffect(() => {
+    if (!captionIsFinal) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCaptionHistory((current) => ({
+        primary: addFinalCaptionToHistory(current.primary, primaryText),
+        secondary: secondaryLanguage
+          ? addFinalCaptionToHistory(current.secondary, secondaryText)
+          : [],
+      }));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    captionIsFinal,
+    primaryText,
+    secondaryLanguage,
+    secondaryText,
+  ]);
+
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -192,6 +243,7 @@ export function PptModeWorkspace({
     setCurrentSlide(0);
     setSlideCount(0);
     setIsLoading(true);
+    setCaptionHistory({ primary: [], secondary: [] });
     setPresentationFile(file);
   }
 
@@ -282,10 +334,16 @@ export function PptModeWorkspace({
       position={captionPosition}
       sizeRatio={captionSizeRatio}
       primaryLanguage={primaryLanguage}
-      primaryText={primaryText}
+      primaryText={createCaptionHistoryDisplayText(
+        primaryText,
+        captionHistory.primary,
+      )}
       primaryFontSize={primaryFontSize}
       secondaryLanguage={secondaryLanguage}
-      secondaryText={secondaryText}
+      secondaryText={createCaptionHistoryDisplayText(
+        secondaryText,
+        captionHistory.secondary,
+      )}
       secondaryFontSize={secondaryFontSize ?? primaryFontSize}
       backgroundOpacity={settings.backgroundOpacity}
     />
@@ -617,7 +675,10 @@ function PptCaptionLine({
   maxLines,
 }: PptCaptionLineProps) {
   const displayText = text
-    ? formatCaptionParagraphSpacing(text, language)
+    ? text
+        .split("\n")
+        .map((line) => formatCaptionParagraphSpacing(line, language))
+        .join("\n")
     : DETECTED_LANGUAGE_PLACEHOLDERS[language];
 
   return (
@@ -633,7 +694,7 @@ function PptCaptionLine({
       </span>
       <p
         lang={language}
-        className={`subtitle-text min-w-0 overflow-hidden font-black leading-tight [display:-webkit-box] [-webkit-box-orient:vertical] ${
+        className={`subtitle-text min-w-0 whitespace-pre-wrap overflow-hidden font-black leading-tight [display:-webkit-box] [-webkit-box-orient:vertical] ${
           text ? "text-white" : "text-white/55"
         }`}
         style={{ fontSize, WebkitLineClamp: maxLines }}
@@ -744,6 +805,51 @@ function getDynamicCaptionLineLimit(
       Math.floor(availableTextHeight / lineHeight),
     ),
   );
+}
+
+function addFinalCaptionToHistory(
+  history: string[],
+  captionText: string,
+): string[] {
+  const normalizedText = captionText.trim();
+
+  if (!normalizedText) {
+    return history;
+  }
+
+  const latestCaption = history[0];
+
+  if (latestCaption === normalizedText) {
+    return history;
+  }
+
+  if (
+    latestCaption &&
+    (normalizedText.startsWith(latestCaption) ||
+      latestCaption.startsWith(normalizedText))
+  ) {
+    return [normalizedText, ...history.slice(1)].slice(
+      0,
+      PPT_CAPTION_HISTORY_LIMIT,
+    );
+  }
+
+  return [normalizedText, ...history].slice(0, PPT_CAPTION_HISTORY_LIMIT);
+}
+
+function createCaptionHistoryDisplayText(
+  currentText: string,
+  history: string[],
+): string {
+  const normalizedCurrentText = currentText.trim();
+  const visibleHistory =
+    normalizedCurrentText && history[0] === normalizedCurrentText
+      ? history
+      : normalizedCurrentText
+        ? [normalizedCurrentText, ...history]
+        : history;
+
+  return visibleHistory.join("\n");
 }
 
 function getFileExtension(fileName: string): string {
