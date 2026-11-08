@@ -414,9 +414,8 @@ export function PptModeWorkspace({
         </div>
       </div>
 
-      <div className="rtt-card overflow-hidden p-3 md:p-4">
-        {presentationFile ? (
-          <>
+      {presentationFile && (
+        <div className="rtt-card overflow-hidden p-3 md:p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-[#101114]">
@@ -518,25 +517,8 @@ export function PptModeWorkspace({
                 </>
               )}
             </div>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex min-h-80 w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-[#b8b9c7] bg-[#fafafe] px-6 text-center transition hover:border-[#7132f5] hover:bg-[#f7f4ff]"
-          >
-            <span className="grid size-14 place-items-center rounded-full bg-[#eee9ff] text-[#7132f5]">
-              <FileUp aria-hidden className="size-7" />
-            </span>
-            <span className="text-base font-black text-[#101114]">
-              {t("selectPptFile")}
-            </span>
-            <span className="max-w-xl text-sm leading-6 text-[#686b82]">
-              {t("pptFileHint")}
-            </span>
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

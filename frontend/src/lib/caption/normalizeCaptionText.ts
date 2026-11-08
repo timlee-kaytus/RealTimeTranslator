@@ -43,6 +43,8 @@ const koreanParticleBeforeClearBoundaryPattern = new RegExp(
 );
 const koreanModifierBeforeClearBoundaryPattern =
   /(다음|이번|이전|현재|좋은|작은|큰|간단한|폐쇄형|오픈소스)(?=(?:그걸|그것|슬라이드|내용|장|페이지|주제|모델|시스템|버전|사례|싸움|방식|대안|아침))/gu;
+const koreanFormalEndingBeforeSentenceStarterPattern =
+  /([가-힣]니다)(?=(?:그리고|그러나|하지만|따라서|또한|다만|한편|먼저|다음|이제|현재|이번|저희|우리|이것|그것|해당|첫째|둘째|셋째|마지막으로|결론적으로))/gu;
 
 function normalizeKoreanSpacingBoundaries(
   text: string,
@@ -56,6 +58,7 @@ function normalizeKoreanSpacingBoundaries(
     .replace(hangulBeforeLatinPattern, "$1 ")
     .replace(latinWithParticleBeforeHangulPattern, "$1$2 ")
     .replace(latinBeforeHangulPattern, "$1 ")
+    .replace(koreanFormalEndingBeforeSentenceStarterPattern, "$1 ")
     .replace(koreanParticleBeforeClearBoundaryPattern, "$1 ")
     .replace(koreanModifierBeforeClearBoundaryPattern, "$1 ");
 }
