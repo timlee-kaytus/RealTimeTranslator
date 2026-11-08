@@ -22,7 +22,10 @@ import {
   type SetStateAction,
 } from "react";
 
-import { CaptionSizeControls } from "@/components/presentation/CaptionSizeControls";
+import {
+  PptCaptionControls,
+  type PptCaptionPosition,
+} from "@/components/presentation/PptCaptionControls";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { formatCaptionParagraphSpacing } from "@/lib/caption/captionSegmenter";
 import {
@@ -73,6 +76,8 @@ export function PptModeWorkspace({
   const [slideCount, setSlideCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [captionPosition, setCaptionPosition] =
+    useState<PptCaptionPosition>("bottom");
 
   const navigateToSlide = useCallback(
     async (direction: -1 | 1) => {
@@ -190,6 +195,24 @@ export function PptModeWorkspace({
   const fileIdentity = presentationFile
     ? `${presentationFile.name}-${presentationFile.size}-${presentationFile.lastModified}`
     : "no-presentation";
+  const captionIsLeading =
+    captionPosition === "top" || captionPosition === "left";
+  const stageDirectionClass =
+    captionPosition === "left" || captionPosition === "right"
+      ? "flex-row"
+      : "flex-col";
+  const captionBand = (
+    <PptCaptionBand
+      position={captionPosition}
+      primaryLanguage={primaryLanguage}
+      primaryText={primaryText}
+      primaryFontSize={primaryFontSize}
+      secondaryLanguage={secondaryLanguage}
+      secondaryText={secondaryText}
+      secondaryFontSize={secondaryFontSize ?? primaryFontSize}
+      backgroundOpacity={settings.backgroundOpacity}
+    />
+  );
 
   return (
     <section className="grid min-h-[calc(100dvh-76px)] content-start gap-4 p-3 md:p-4">
@@ -202,9 +225,11 @@ export function PptModeWorkspace({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <CaptionSizeControls
+        <PptCaptionControls
           settings={settings}
+          position={captionPosition}
           onSettingsChange={onSettingsChange}
+          onPositionChange={setCaptionPosition}
         />
 
         <div className="rtt-card flex min-h-44 flex-col justify-between gap-4 p-4">
@@ -298,9 +323,10 @@ export function PptModeWorkspace({
               ref={stageRef}
               tabIndex={0}
               aria-label={t("pptMode")}
-              className="ppt-presentation-stage flex h-[clamp(360px,65vw,760px)] w-full flex-col overflow-hidden rounded-lg border border-[#2d2f39] bg-[#090a0e]"
+              className={`ppt-presentation-stage flex h-[clamp(360px,65vw,760px)] w-full overflow-hidden rounded-lg border border-[#2d2f39] bg-[#090a0e] ${stageDirectionClass}`}
             >
-              <div className="ppt-slide-surface min-h-0 flex-1 overflow-hidden bg-[#090a0e]">
+              {captionIsLeading && captionBand}
+              <div className="ppt-slide-surface min-h-0 min-w-0 flex-1 overflow-hidden bg-[#090a0e]">
                 <ReactPptxViewer
                   key={fileIdentity}
                   source={presentationFile}
@@ -334,16 +360,7 @@ export function PptModeWorkspace({
                   )}
                 />
               </div>
-
-              <PptCaptionBand
-                primaryLanguage={primaryLanguage}
-                primaryText={primaryText}
-                primaryFontSize={primaryFontSize}
-                secondaryLanguage={secondaryLanguage}
-                secondaryText={secondaryText}
-                secondaryFontSize={secondaryFontSize ?? primaryFontSize}
-                backgroundOpacity={settings.backgroundOpacity}
-              />
+              {!captionIsLeading && captionBand}
             </div>
           </>
         ) : (
@@ -369,6 +386,7 @@ export function PptModeWorkspace({
 }
 
 type PptCaptionBandProps = {
+  position: PptCaptionPosition;
   primaryLanguage: SupportedLanguage;
   primaryText: string;
   primaryFontSize: number;
@@ -379,6 +397,7 @@ type PptCaptionBandProps = {
 };
 
 function PptCaptionBand({
+  position,
   primaryLanguage,
   primaryText,
   primaryFontSize,
@@ -388,10 +407,18 @@ function PptCaptionBand({
   backgroundOpacity,
 }: PptCaptionBandProps) {
   const { language: uiLanguage } = useUiLanguage();
+  const sidePosition = position === "left" || position === "right";
+  const positionClass = {
+    top: "w-full border-b",
+    bottom: "w-full border-t",
+    left: "h-full w-[clamp(220px,28vw,420px)] border-r",
+    right: "h-full w-[clamp(220px,28vw,420px)] border-l",
+  }[position];
 
   return (
     <div
-      className="ppt-caption-band grid shrink-0 gap-2 border-t border-white/15 px-5 py-3 text-white md:px-7"
+      data-position={position}
+      className={`ppt-caption-band grid shrink-0 gap-3 border-white/15 px-5 py-3 text-white md:px-7 ${positionClass}`}
       style={{
         backgroundColor: `rgba(12, 13, 18, ${backgroundOpacity})`,
         gridTemplateRows: secondaryLanguage ? "repeat(2, minmax(0, 1fr))" : "1fr",
@@ -402,6 +429,7 @@ function PptCaptionBand({
         languageLabel={getLocalizedLanguageName(primaryLanguage, uiLanguage)}
         text={primaryText}
         fontSize={primaryFontSize}
+        sidePosition={sidePosition}
       />
       {secondaryLanguage && (
         <PptCaptionLine
@@ -409,6 +437,7 @@ function PptCaptionBand({
           languageLabel={getLocalizedLanguageName(secondaryLanguage, uiLanguage)}
           text={secondaryText}
           fontSize={secondaryFontSize}
+          sidePosition={sidePosition}
         />
       )}
     </div>
@@ -420,6 +449,7 @@ type PptCaptionLineProps = {
   languageLabel: string;
   text: string;
   fontSize: number;
+  sidePosition: boolean;
 };
 
 function PptCaptionLine({
@@ -427,19 +457,26 @@ function PptCaptionLine({
   languageLabel,
   text,
   fontSize,
+  sidePosition,
 }: PptCaptionLineProps) {
   const displayText = text
     ? formatCaptionParagraphSpacing(text, language)
     : DETECTED_LANGUAGE_PLACEHOLDERS[language];
 
   return (
-    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+    <div
+      className={`grid min-w-0 gap-3 ${
+        sidePosition
+          ? "content-center items-start"
+          : "grid-cols-[auto_minmax(0,1fr)] items-center"
+      }`}
+    >
       <span className="rounded-md bg-white/12 px-2 py-1 text-xs font-bold text-white/75">
         {languageLabel}
       </span>
       <p
         lang={language}
-        className={`subtitle-text min-w-0 truncate font-black leading-tight ${
+        className={`subtitle-text min-w-0 overflow-hidden font-black leading-tight [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${
           text ? "text-white" : "text-white/55"
         }`}
         style={{ fontSize }}
