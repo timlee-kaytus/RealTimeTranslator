@@ -1,5 +1,5 @@
 import type { SupportedLanguage } from "@/lib/types/language";
-import type { TranslationMode } from "@/lib/types/realtime";
+import type { RealtimeSessionMode } from "@/lib/types/realtime";
 
 type CaptionModePolicy = {
   maxLines: number;
@@ -10,7 +10,7 @@ type CaptionModePolicy = {
 };
 
 export const CAPTION_IDLE_COMMIT_MS = 1200;
-export const CAPTION_DISPLAY_POLICY: Record<TranslationMode, CaptionModePolicy> = {
+export const CAPTION_DISPLAY_POLICY: Record<RealtimeSessionMode, CaptionModePolicy> = {
   presentation: {
     maxLines: 3,
     softCharLimit: {
@@ -38,7 +38,7 @@ export const CAPTION_DISPLAY_POLICY: Record<TranslationMode, CaptionModePolicy> 
 };
 
 type CaptionFontSizeOptions = {
-  mode: TranslationMode;
+  mode: RealtimeSessionMode;
   language: SupportedLanguage;
   text: string;
   preferredFontSize?: number;
@@ -65,7 +65,7 @@ export function getSecondaryCaptionFontSize(primaryFontSize: number): number {
 }
 
 export function estimateCaptionLineCount(
-  mode: TranslationMode,
+  mode: RealtimeSessionMode,
   language: SupportedLanguage,
   text: string,
 ): number {

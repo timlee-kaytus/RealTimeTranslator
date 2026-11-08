@@ -65,7 +65,11 @@ export function AppShell() {
         </div>
       </header>
       <main className="mx-auto max-w-7xl">
-        {mode === "conversation" ? <InterpreterMode /> : <PresentationMode />}
+        {mode === "conversation" ? (
+          <InterpreterMode />
+        ) : (
+          <PresentationMode variant={mode === "ppt" ? "ppt" : "presentation"} />
+        )}
       </main>
     </div>
   );

@@ -85,6 +85,26 @@ input {
   letter-spacing: 0;
 }
 
+.ppt-presentation-stage:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: #090a0e;
+}
+
+.ppt-presentation-stage:fullscreen .ppt-slide-surface {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.ppt-presentation-stage:fullscreen .ppt-caption-band {
+  width: 100%;
+  padding: 18px 32px;
+}
+
 .rtt-card {
   border: 1px solid var(--rtt-border);
   background: #ffffff;

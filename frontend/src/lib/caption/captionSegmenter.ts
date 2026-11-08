@@ -5,12 +5,12 @@ import {
 } from "@/lib/caption/captionDisplayPolicy";
 import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import type { SupportedLanguage } from "@/lib/types/language";
-import type { TranslationMode } from "@/lib/types/realtime";
+import type { RealtimeSessionMode } from "@/lib/types/realtime";
 
 export { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 
 type SplitCaptionTextOptions = {
-  mode: TranslationMode;
+  mode: RealtimeSessionMode;
   language: SupportedLanguage;
   text: string;
 };
@@ -126,7 +126,7 @@ function splitByDisplayLimit({
 }
 
 function exceedsDisplayLimit(
-  mode: TranslationMode,
+  mode: RealtimeSessionMode,
   language: SupportedLanguage,
   text: string,
 ): boolean {

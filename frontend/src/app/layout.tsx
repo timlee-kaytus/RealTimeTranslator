@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { Viewport } from "next";
 import { UiLanguageProvider } from "@/lib/i18n/uiLanguage";
+import "@extend-ai/react-pptx/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

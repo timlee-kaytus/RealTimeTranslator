@@ -4,7 +4,7 @@ import {
 } from "@/lib/caption/captionSegmenter";
 import { normalizeCaptionText } from "@/lib/caption/normalizeCaptionText";
 import type { SupportedLanguage } from "@/lib/types/language";
-import type { TranslationMode } from "@/lib/types/realtime";
+import type { RealtimeSessionMode } from "@/lib/types/realtime";
 
 export type CaptionBlock = {
   id: string;
@@ -20,13 +20,13 @@ export type CaptionDisplayState = {
 };
 
 type CaptionBufferOptions = {
-  mode: TranslationMode;
+  mode: RealtimeSessionMode;
   language: SupportedLanguage;
   recentBlockLimit?: number;
 };
 
 export class CaptionBuffer {
-  private readonly mode: TranslationMode;
+  private readonly mode: RealtimeSessionMode;
   private readonly recentBlockLimit: number;
   private language: SupportedLanguage;
   private state: CaptionDisplayState;

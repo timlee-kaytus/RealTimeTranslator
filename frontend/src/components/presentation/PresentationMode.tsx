@@ -7,6 +7,7 @@ import { ConversationActivityHint } from "@/components/conversation/Conversation
 import { MicLevelMeter } from "@/components/conversation/MicLevelMeter";
 import { CaptionSizeControls } from "@/components/presentation/CaptionSizeControls";
 import { FloatingCaptionLauncher } from "@/components/presentation/FloatingCaptionLauncher";
+import { PptModeWorkspace } from "@/components/presentation/PptModeWorkspace";
 import { CaptionPreview } from "@/components/shared/CaptionPreview";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { useMicrophoneLevel } from "@/hooks/useMicrophoneLevel";
@@ -85,7 +86,13 @@ type PresentationSourceCaptionState = PresentationRoleCaptionState & {
   detectedLanguage: DetectedSupportedLanguage;
 };
 
-export function PresentationMode() {
+type PresentationModeProps = {
+  variant?: "presentation" | "ppt";
+};
+
+export function PresentationMode({
+  variant = "presentation",
+}: PresentationModeProps) {
   const [outputLanguage, setOutputLanguage] = useState<SupportedLanguage>(
     initialOutputLanguage,
   );
@@ -1108,29 +1115,52 @@ export function PresentationMode() {
     activeSessionIdsRef.current = [];
   }
 
+  const realtimeControls = (
+    <>
+      <PresentationOutputLanguageSelect
+        primaryLanguage={outputLanguage}
+        secondaryLanguage={secondaryOutputLanguage}
+        onPrimaryChange={handleOutputLanguageChange}
+        onSecondaryChange={handleSecondaryOutputLanguageChange}
+      />
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <MicLevelMeter
+          disabled={!active && !busy}
+          level={micLevel}
+          speaking={isSpeaking}
+        />
+        <ConversationActivityHint status={activityStatus} />
+        <MicToggleButton
+          active={active || busy}
+          disabled={status === "reconnecting"}
+          onClick={handleToggle}
+        />
+      </div>
+    </>
+  );
+
+  if (variant === "ppt") {
+    return (
+      <PptModeWorkspace
+        controls={realtimeControls}
+        errorMessage={errorMessage}
+        primaryLanguage={outputLanguage}
+        primaryText={caption.output.text}
+        primaryFontSize={captionFontSize}
+        secondaryLanguage={selectedSecondaryOutputLanguage}
+        secondaryText={secondaryOutputText}
+        secondaryFontSize={secondaryCaptionFontSize}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
+    );
+  }
+
   return (
     <section className="grid min-h-[calc(100dvh-76px)] content-start gap-4 p-3 md:p-4">
       <div className="rtt-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <PresentationOutputLanguageSelect
-            primaryLanguage={outputLanguage}
-            secondaryLanguage={secondaryOutputLanguage}
-            onPrimaryChange={handleOutputLanguageChange}
-            onSecondaryChange={handleSecondaryOutputLanguageChange}
-          />
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <MicLevelMeter
-              disabled={!active && !busy}
-              level={micLevel}
-              speaking={isSpeaking}
-            />
-            <ConversationActivityHint status={activityStatus} />
-            <MicToggleButton
-              active={active || busy}
-              disabled={status === "reconnecting"}
-              onClick={handleToggle}
-            />
-          </div>
+          {realtimeControls}
         </div>
         <ErrorBanner message={errorMessage} />
       </div>

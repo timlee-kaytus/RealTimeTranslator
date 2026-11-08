@@ -21,7 +21,8 @@ export type ConversationActivityStatus =
   | "error"
   | "stopped";
 
-export type TranslationMode = "conversation" | "presentation";
+export type TranslationMode = "conversation" | "presentation" | "ppt";
+export type RealtimeSessionMode = Exclude<TranslationMode, "ppt">;
 
 export type CaptionEventType =
   | "caption_delta"
@@ -73,7 +74,7 @@ export type PresentationCaptionEvent = {
 };
 
 export type CreateRealtimeSessionRequest = {
-  mode: TranslationMode;
+  mode: RealtimeSessionMode;
   targetLanguages: SupportedLanguage[];
   clientId: string;
   uiSessionId: string;
@@ -102,6 +103,6 @@ export type EndRealtimeSessionRequest = {
 export type UsageEventRequest = {
   sessionId: string;
   eventType: "session_started" | "session_stopped" | "caption_event";
-  mode: TranslationMode;
+  mode: RealtimeSessionMode;
   timestamp: string;
 };
